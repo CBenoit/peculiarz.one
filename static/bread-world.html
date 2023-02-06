@@ -1,0 +1,15 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <title>Bread World</title>
+    <link rel="preload" href="/app/bread-world.wasm" as="fetch" type="application/wasm" crossorigin="">
+    <link rel="modulepreload" href="/app/bread-world.js">
+  </head>
+  <body>
+    <script type="module">
+      import init from '/app/bread-world.js';
+      init("app/bread-world.wasm");
+    </script>
+  </body>
+</html>

@@ -1,0 +1,16 @@
+[package]
+name = "xtask"
+version = "0.0.0"
+edition = "2021"
+readme = "README.md"
+license = "MIT/Apache-2.0"
+homepage = "https://www.peculiarz.one/"
+repository = "https://github.com/CBenoit/peculiarzone"
+authors = ["Benoît CORTIER <bcortier@proton.me>"]
+publish = false
+
+[dependencies]
+anyhow = "1.0.68"
+pico-args = "0.5.0"
+wasm-bindgen-cli-support = "0.2.84"
+xshell = "0.2.3"

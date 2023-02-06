@@ -1,0 +1,17 @@
+[package]
+name = "bread-world"
+version = "0.0.0"
+edition = "2021"
+readme = "README.md"
+license = "MIT/Apache-2.0"
+homepage = "https://www.peculiarz.one/"
+repository = "https://github.com/CBenoit/peculiarzone"
+authors = ["Benoît CORTIER <bcortier@proton.me>"]
+publish = false
+
+[dependencies]
+console_error_panic_hook = "0.1.7"
+ellp = "0.2.0"
+uom = { version = "0.33.0", default-features = false, features = ["si", "f64"] }
+web-sys = { version = "0.3.61", features = ["HtmlSelectElement", "HtmlInputElement"] }
+yew = { version = "0.20.0", features = ["csr"] }
