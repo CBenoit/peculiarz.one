@@ -112,8 +112,8 @@ fn dist(sh: &Shell) -> Result<()> {
         let optimized_wasm_path = dist_dir.join(format!("{package}-opt")).with_extension("wasm");
         cmd!(sh, "wasm-opt -Os {wasm_path} -o {optimized_wasm_path}").run()?;
 
-        sh.copy_file(js_path, format!("static/app/{package}.js"))?;
-        sh.copy_file(optimized_wasm_path, format!("static/app/{package}.wasm"))?;
+        sh.copy_file(js_path, format!("assets/app/{package}.js"))?;
+        sh.copy_file(optimized_wasm_path, format!("assets/app/{package}.wasm"))?;
     }
 
     Ok(())
@@ -188,8 +188,8 @@ fn clean_workspace(sh: &Shell) -> Result<()> {
     sh.remove_path("dist")?;
 
     for package in WASM_PACKAGES {
-        sh.remove_path(format!("static/app/{package}.js"))?;
-        sh.remove_path(format!("static/app/{package}.wasm"))?;
+        sh.remove_path(format!("assets/app/{package}.js"))?;
+        sh.remove_path(format!("assets/app/{package}.wasm"))?;
     }
 
     Ok(())
