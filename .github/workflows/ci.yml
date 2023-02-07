@@ -11,10 +11,13 @@ on:
 jobs:
   checks:
     name: Check project
-    runs-on: ubuntu-18.04
+    runs-on: ubuntu-latest
 
     steps:
       - uses: actions/checkout@v3
+
+      - name: Prepare runner
+        run: sudo apt install wabt
 
       - name: xtask ci
         run: cargo xtask ci
