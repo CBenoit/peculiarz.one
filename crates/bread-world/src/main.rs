@@ -1,9 +1,17 @@
-use uom::si::f64::{Mass, Ratio, Volume};
+use bread_world::TargetBread;
+use bread_world_models::Bread;
+use uom::si::f64::{Mass, Ratio};
 use uom::si::mass::gram;
-use uom::si::ratio::{percent, ratio};
-use uom::si::volume::milliliter;
+use uom::si::ratio::percent;
 use web_sys::{HtmlInputElement, HtmlSelectElement};
 use yew::prelude::*;
+
+fn main() {
+    console_error_panic_hook::set_once();
+    console_log::init_with_level(log::Level::Debug).expect("console log init");
+
+    yew::Renderer::<App>::new().render();
+}
 
 #[function_component]
 fn App() -> Html {
@@ -44,7 +52,7 @@ fn App() -> Html {
                 _ => unreachable!(),
             };
 
-            let solution_bread = bread_solve(target_bread, hydratation, starter_hydratation, starter_ratio);
+            let solution_bread = bread_world::solve(target_bread, hydratation, starter_hydratation, starter_ratio);
 
             bread.set(Some(solution_bread));
         }
@@ -100,271 +108,14 @@ fn BreadCard(BreadCardProps { bread }: &BreadCardProps) -> Html {
                 <th>{ "Added Salt" }</th>
             </tr>
             <tr>
-                <td>{ format!("{:.0} g", bread.total_weight.get::<gram>()) }</td>
+                <td>{ format!("{:.0} g", bread.total_weight().get::<gram>()) }</td>
                 <td>{ format!("{:.0} g", bread.total_flour.get::<gram>()) }</td>
                 <td>{ format!("{:.0} g", bread.added_flour.get::<gram>()) }</td>
-                <td>{ format!("{:.0} ml", bread.total_water.get::<milliliter>()) }</td>
-                <td>{ format!("{:.0} ml", bread.added_water.get::<milliliter>()) }</td>
-                <td>{ format!("{:.0} g", bread.total_starter.get::<gram>()) }</td>
-                <td>{ format!("{:.0} g", bread.added_salt.get::<gram>()) }</td>
+                <td>{ format!("{:.0} ml", bread.total_water.get::<gram>()) }</td>
+                <td>{ format!("{:.0} ml", bread.added_water.get::<gram>()) }</td>
+                <td>{ format!("{:.0} g", bread.starter().get::<gram>()) }</td>
+                <td>{ format!("{:.0} g", bread.salt.get::<gram>()) }</td>
             </tr>
         </table>
-    }
-}
-
-#[derive(Clone, Copy, Debug)]
-enum TargetBread {
-    /// How much flour to use
-    TotalWeight(Mass),
-    /// How much flour to use
-    Flour(Mass),
-    /// How much of starter to use
-    Starter(Mass),
-}
-
-impl TargetBread {
-    fn total_weight_bound(self) -> ellp::Bound {
-        if let Self::TotalWeight(mass) = self {
-            ellp::Bound::Fixed(mass.get::<gram>())
-        } else {
-            ellp::Bound::Free
-        }
-    }
-
-    fn flour_bound(self) -> ellp::Bound {
-        if let Self::Flour(mass) = self {
-            ellp::Bound::Fixed(mass.get::<gram>())
-        } else {
-            ellp::Bound::Free
-        }
-    }
-
-    fn starter_bound(self) -> ellp::Bound {
-        if let Self::Starter(mass) = self {
-            ellp::Bound::Fixed(mass.get::<gram>())
-        } else {
-            ellp::Bound::Free
-        }
-    }
-}
-
-#[derive(Clone, Debug, PartialEq)]
-struct Bread {
-    total_weight: Mass,
-    total_flour: Mass,
-    added_flour: Mass,
-    total_water: Volume,
-    added_water: Volume,
-    total_starter: Mass,
-    added_salt: Mass,
-}
-
-fn bread_solve(
-    target: TargetBread,
-    total_hydratation: Ratio,
-    starter_hydratation: Ratio,
-    starter_ratio: Ratio,
-) -> Bread {
-    use ellp::*;
-
-    let mut prob = Problem::new();
-
-    let total_weight = prob
-        .add_var(1., target.total_weight_bound(), Some("total_weight".to_string()))
-        .unwrap();
-
-    let total_flour = prob
-        .add_var(1., target.flour_bound(), Some("total_flour".to_string()))
-        .unwrap();
-
-    let added_flour = prob.add_var(1., Bound::Free, Some("added_flour".to_owned())).unwrap();
-
-    let total_water = prob.add_var(1., Bound::Free, Some("total_water".to_owned())).unwrap();
-
-    let added_water = prob.add_var(1., Bound::Free, Some("added_water".to_owned())).unwrap();
-
-    let total_starter = prob
-        .add_var(1., target.starter_bound(), Some("total_starter".to_string()))
-        .unwrap();
-
-    let starter_water = prob
-        .add_var(1., Bound::Free, Some("starter_water".to_string()))
-        .unwrap();
-
-    let starter_flour = prob
-        .add_var(1., Bound::Free, Some("starter_flour".to_string()))
-        .unwrap();
-
-    let added_salt = prob.add_var(1., Bound::Free, Some("added_salt".to_owned())).unwrap();
-
-    // Sum constraints
-
-    prob.add_constraint(
-        vec![
-            (total_weight, 1.),
-            (total_flour, -1.),
-            (total_water, -1.),
-            (added_salt, -1.),
-        ],
-        ConstraintOp::Eq,
-        0.,
-    )
-    .unwrap();
-
-    prob.add_constraint(
-        vec![(total_flour, 1.), (added_flour, -1.), (starter_flour, -1.)],
-        ConstraintOp::Eq,
-        0.,
-    )
-    .unwrap();
-
-    prob.add_constraint(
-        vec![(total_water, 1.), (added_water, -1.), (starter_water, -1.)],
-        ConstraintOp::Eq,
-        0.,
-    )
-    .unwrap();
-
-    prob.add_constraint(
-        vec![(total_starter, 1.), (starter_water, -1.), (starter_flour, -1.)],
-        ConstraintOp::Eq,
-        0.,
-    )
-    .unwrap();
-
-    // Ratio constraints
-
-    prob.add_constraint(
-        vec![(total_flour, total_hydratation.get::<ratio>()), (total_water, -1.)],
-        ConstraintOp::Eq,
-        0.,
-    )
-    .unwrap();
-
-    prob.add_constraint(
-        vec![(total_flour, starter_ratio.get::<ratio>()), (total_starter, -1.)],
-        ConstraintOp::Eq,
-        0.,
-    )
-    .unwrap();
-
-    prob.add_constraint(
-        vec![
-            (starter_flour, starter_hydratation.get::<ratio>()),
-            (starter_water, -1.),
-        ],
-        ConstraintOp::Eq,
-        0.,
-    )
-    .unwrap();
-
-    prob.add_constraint(vec![(total_flour, 0.02), (added_salt, -1.)], ConstraintOp::Eq, 0.)
-        .unwrap();
-
-    println!("Problem: {prob}");
-
-    let solver = DualSimplexSolver::default();
-    let result = solver.solve(prob).unwrap();
-
-    if let SolverResult::Optimal(sol) = result {
-        let sol = sol.x();
-
-        println!("Solution: {sol}");
-
-        let total_weight = Mass::new::<gram>(sol[usize::from(total_weight)]);
-        let total_flour = Mass::new::<gram>(sol[usize::from(total_flour)]);
-        let added_flour = Mass::new::<gram>(sol[usize::from(added_flour)]);
-        let total_water = Volume::new::<milliliter>(sol[usize::from(total_water)]);
-        let added_water = Volume::new::<milliliter>(sol[usize::from(added_water)]);
-        let total_starter = Mass::new::<gram>(sol[usize::from(total_starter)]);
-        let added_salt = Mass::new::<gram>(sol[usize::from(added_salt)]);
-
-        Bread {
-            total_weight,
-            total_flour,
-            added_flour,
-            total_water,
-            added_water,
-            total_starter,
-            added_salt,
-        }
-    } else {
-        panic!("should have an optimal point");
-    }
-}
-
-fn main() {
-    console_error_panic_hook::set_once();
-    yew::Renderer::<App>::new().render();
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn bread_solver_by_starter() {
-        let solution_bread = bread_solve(
-            TargetBread::Starter(Mass::new::<gram>(100.)),
-            Ratio::new::<ratio>(0.75),
-            Ratio::new::<ratio>(0.5),
-            Ratio::new::<ratio>(0.2),
-        );
-
-        let expected_bread = Bread {
-            total_weight: Mass::new::<gram>(885.).round::<gram>(),
-            total_flour: Mass::new::<gram>(500.).round::<gram>(),
-            added_flour: Mass::new::<gram>(433.).round::<gram>(),
-            total_water: Volume::new::<milliliter>(375.).round::<milliliter>(),
-            added_water: Volume::new::<milliliter>(341.99999999999996).round::<milliliter>(),
-            total_starter: Mass::new::<gram>(100.).round::<gram>(),
-            added_salt: Mass::new::<gram>(10.),
-        };
-
-        assert_eq!(solution_bread, expected_bread);
-    }
-
-    #[test]
-    fn bread_solver_by_total_weight() {
-        let solution_bread = bread_solve(
-            TargetBread::TotalWeight(Mass::new::<gram>(1000.)),
-            Ratio::new::<ratio>(0.75),
-            Ratio::new::<ratio>(0.5),
-            Ratio::new::<ratio>(0.2),
-        );
-
-        let expected_bread = Bread {
-            total_weight: Mass::new::<gram>(1000.).round::<gram>(),
-            total_flour: Mass::new::<gram>(565.0000000000001).round::<gram>(),
-            added_flour: Mass::new::<gram>(490.).round::<gram>(),
-            total_water: Volume::new::<milliliter>(424.).round::<milliliter>(),
-            added_water: Volume::new::<milliliter>(386.).round::<milliliter>(),
-            total_starter: Mass::new::<gram>(113.).round::<gram>(),
-            added_salt: Mass::new::<gram>(11.),
-        };
-
-        assert_eq!(solution_bread, expected_bread);
-    }
-
-    #[test]
-    fn bread_solver_by_flour() {
-        let solution_bread = bread_solve(
-            TargetBread::Flour(Mass::new::<gram>(400.)),
-            Ratio::new::<ratio>(0.75),
-            Ratio::new::<ratio>(0.5),
-            Ratio::new::<ratio>(0.2),
-        );
-
-        let expected_bread = Bread {
-            total_weight: Mass::new::<gram>(708.).round::<gram>(),
-            total_flour: Mass::new::<gram>(400.).round::<gram>(),
-            added_flour: Mass::new::<gram>(347.00000000000003).round::<gram>(),
-            total_water: Volume::new::<milliliter>(300.).round::<milliliter>(),
-            added_water: Volume::new::<milliliter>(272.99999999999997).round::<milliliter>(),
-            total_starter: Mass::new::<gram>(80.).round::<gram>(),
-            added_salt: Mass::new::<gram>(8.),
-        };
-
-        assert_eq!(solution_bread, expected_bread);
     }
 }
