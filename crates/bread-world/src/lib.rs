@@ -24,7 +24,7 @@ pub enum TargetBread {
     TotalWeight(Mass),
     /// How much flour to use
     Flour(Mass),
-    /// How much of starter to use
+    /// How much starter to use
     Starter(Mass),
 }
 
