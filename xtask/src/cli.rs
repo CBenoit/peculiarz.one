@@ -20,6 +20,10 @@ TASKS:
   clean           Clean workspace
 ";
 
+pub fn print_help() {
+    println!("{HELP}");
+}
+
 pub enum Action {
     ShowHelp,
     Dist,
@@ -30,10 +34,6 @@ pub enum Action {
     CiLints,
     CiWasm,
     Clean,
-}
-
-pub fn print_help() {
-    println!("{HELP}");
 }
 
 pub fn parse_args() -> Result<Action> {

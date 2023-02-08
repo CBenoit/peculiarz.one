@@ -1,5 +1,5 @@
 use bread_world::TargetBread;
-use bread_world_models::Bread;
+use bread_world_models::BreadComposition;
 use uom::si::f64::{Mass, Ratio};
 use uom::si::mass::gram;
 use uom::si::ratio::percent;
@@ -91,7 +91,7 @@ fn App() -> Html {
 
 #[derive(Properties, PartialEq)]
 struct BreadCardProps {
-    bread: Bread,
+    bread: BreadComposition,
 }
 
 #[function_component]
