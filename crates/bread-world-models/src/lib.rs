@@ -268,6 +268,45 @@ pub enum IngredientCategory {
     Mixed,
 }
 
+impl IngredientCategory {
+    pub const LIQUID_KINDS: &[IngredientKind] = &[
+        IngredientKind::Water,
+        IngredientKind::Milk,
+        IngredientKind::Juice,
+        IngredientKind::Broth,
+        IngredientKind::Beer,
+        IngredientKind::Other,
+    ];
+
+    pub const FAT_KINDS: &[IngredientKind] = &[
+        IngredientKind::Shortening,
+        IngredientKind::Butter,
+        IngredientKind::Margarine,
+        IngredientKind::ReducedFatSubstitute,
+        IngredientKind::Oil,
+        IngredientKind::Other,
+    ];
+
+    pub const NUTS_KINDS: &[IngredientKind] = &[IngredientKind::Other];
+
+    pub const SEEDS_KINDS: &[IngredientKind] = &[IngredientKind::Other];
+
+    pub const SALT_KINDS: &[IngredientKind] = &[IngredientKind::TableSalt, Other];
+
+    pub const MIXED_KINDS: &[IngredientKind] = &[IngredientKind::Eggs, Other];
+
+    pub fn kinds(&self) -> &[IngredientCategory] {
+        match self {
+            IngredientCategory::Liquid => Self::LIQUID_KINDS,
+            IngredientCategory::Fat => Self::FAT_KINDS,
+            IngredientCategory::Nuts => Self::NUTS_KINDS,
+            IngredientCategory::Seeds => Self::SEEDS_KINDS,
+            IngredientCategory::Salt => Self::SALT_KINDS,
+            IngredientCategory::Mixed => Self::MIXED_KINDS,
+        }
+    }
+}
+
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub enum IngredientKind {
     /// The neutral liquid for most products.
@@ -316,6 +355,10 @@ pub enum IngredientKind {
     /// oil for butter or margarine, use 7/8 cup oil for 1 cup butter or margarine. If oil is used in place of a solid
     /// fat for some cake recipes, the texture will be heavier unless the sugar and egg are increased.
     Oil,
+
+    TableSalt,
+
+    Eggs,
 
     /// Other exotic ingredient.
     Other,
