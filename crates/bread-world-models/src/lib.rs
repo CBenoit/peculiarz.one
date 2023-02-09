@@ -4,11 +4,11 @@ use uom::si::f64::{Mass, Ratio};
 #[derive(Clone, Debug, PartialEq)]
 pub struct Bread {
     pub id: Ulid,
-    pub name: String,
     pub baker: Ulid,
+    pub name: String,
     pub composition: BreadComposition,
     pub notes: String,
-    pub pictures: Vec<String>,
+    pub pictures: Vec<Ulid>,
 }
 
 #[derive(Clone, Debug, PartialEq)]
@@ -19,6 +19,8 @@ pub struct BreadComposition {
     pub added_water: Mass,
     pub starter: Mass,
     pub starter_water: Mass,
+    pub dry_yeast: Mass,
+    pub fresh_yeast: Mass,
     pub salt: Mass,
     pub protein_ratio: Ratio,
     pub flours: Vec<(Ulid, Mass)>,
@@ -71,6 +73,18 @@ impl BreadComposition {
         self.starter / self.total_flour
     }
 
+    pub fn dry_yeast(&self) -> Mass {
+        self.dry_yeast
+    }
+
+    pub fn fresh_yeast(&self) -> Mass {
+        self.fresh_yeast
+    }
+
+    pub fn salt(&self) -> Mass {
+        self.salt
+    }
+
     pub fn protein_ratio(&self) -> Ratio {
         self.protein_ratio
     }
@@ -87,30 +101,37 @@ impl BreadComposition {
 /// [Source](https://digitalcommons.unl.edu/cgi/viewcontent.cgi?article=1412)
 #[derive(Clone, Debug, PartialEq)]
 pub enum FlourKind {
+    /// Contains only the endosperm of wheat.
+    ///
+    /// - Soft texture.
+    /// - Naturally reached the bleached state by aging.
+    /// - Best rise, lightweight breads.
+    /// - Oxygen in the air gradually frees the glutenin proteins’ end sulfur groups
+    ///    to react with each others and form ever longer gluten chains that give the dough
+    ///    greater elasticity.
+    WhiteUnbleached,
+    /// Contains only the endosperm of wheat.
+    ///
+    /// - Soft texture.
+    /// - Reached the bleached state using chemicals to speed up the aging process.
+    /// - Illegal in Europe and many other countries because process uses food
+    ///     additives such as chlorine, bromates, and peroxides. Do no use that.
+    WhiteBleached,
     /// Contains the bran, the germ and the endosperm of wheat.
     ///
     /// - More flavorful and more nutritious.
     /// - Coarse texture.
     /// - More absorbent, it requires higher liquid ratio.
     /// - Shorter shelf life
+    /// - Less rise, denser breads.
     WholeWheat,
-    /// Contains only the endosperm of wheat.
-    ///
-    /// - Soft texture.
-    /// - Naturally reached the bleached state by aging.
-    WhiteBleached,
-    /// Contains only the endosperm of wheat.
-    ///
-    /// - Soft texture.
-    /// - Reached the bleached state using chemicals to speed up the aging process.
-    WhiteUnbleached,
     /// Flour made from rye kernels. Only the white endosperm is milled.
     ///
     /// - Off-white color.
     /// - Low protein.
     /// - Highly nutritious.
     /// - Sour and nutty taste.
-    /// - More compact, do not rise a lot.
+    /// - Less rise, denser breads.
     WhiteRye,
     /// Flour made from rye kernels. The white endosperm and some of the germ are milled.
     ///
@@ -118,7 +139,7 @@ pub enum FlourKind {
     /// - Low protein.
     /// - Highly nutritious.
     /// - Sour and nutty taste.
-    /// - More compact dough, do not rise a lot.
+    /// - Less rise, denser breads.
     MediumRye,
     /// Flour made from rye kernels. Only the bran layer is removed prior to milling.
     ///
@@ -126,7 +147,7 @@ pub enum FlourKind {
     /// - Low protein.
     /// - Highly nutritious.
     /// - Sour and nutty taste.
-    /// - More compact, do not rise a lot.
+    /// - Less rise, denser breads.
     DarkRye,
     /// Flour made from rye kernels. Contains the endosperm, the germ and the bran.
     ///
@@ -134,23 +155,79 @@ pub enum FlourKind {
     /// - Low protein.
     /// - Highly nutritious.
     /// - Sour and nutty taste.
-    /// - More compact, do not rise a lot.
+    /// - Less rise, denser breads.
     Pumpernickel,
     /// High protein flour.
     ///
     /// - Typically extracted from hard wheat.
     /// - Contains over 70% protein.
     /// - Added to low protein flours like rye flour in order to boost the protein ratio.
+    /// - Less rise, denser breads.
     GlutenPowder,
+}
+
+/// Wheat Type
+///
+/// Wheat yielding a strong gluten is to be preferred when baking breads.
+///
+/// See this [video](https://youtu.be/zDEcvSc2UKA) explaining why the glutent content is important.
+#[derive(Clone, Debug, PartialEq)]
+pub enum WheatKind {
+    /// 13-16.5% protein content
+    ///
+    /// - Very popular in US.
+    /// - Strong gluten.
+    HardRedSpring,
+    /// 10-13.5% protein content
+    ///
+    /// - Very popular in US.
+    /// - Strong gluten.
+    HardRedWinter,
+    /// 9-11% protein content
+    ///
+    /// - Weak gluten.
+    SoftRed,
+    /// 10-12% protein content
+    ///
+    /// - Strong gluten.
+    HardWhite,
+    /// 10-11% protein content
+    ///
+    /// - Very popular in Europe.
+    /// - Weak gluten.
+    SoftWhite,
+    /// 8-9% protein content
+    ///
+    /// - Weak gluten.
+    /// - Good for cakes.
+    Club,
+    /// 12-16% protein content
+    ///
+    /// - Strong gluten.
+    Durum,
+    /// Unknown
+    Unknown,
+    /// Not wheat (rye, …).
+    NotApplicable,
 }
 
 #[derive(Clone, Debug, PartialEq)]
 pub struct Flour {
     pub id: Ulid,
+    pub added_by: Ulid,
     pub name: String,
     pub brand: String,
     pub kind: FlourKind,
+    pub wheat: WheatKind,
     pub protein: Ratio,
+    /// Ash Content is the mineral material in flour.
+    ///
+    /// It is an indirect way to measure how much bran and germ
+    /// is left in the flour.
+    ///
+    /// https://www.theartisan.net/flour_classification_of.htm
+    /// https://bakerpedia.com/processes/ash-in-flour/
+    pub ash: Ratio,
     pub notes: String,
     pub reference: String,
     pub picture: String,
@@ -189,6 +266,7 @@ pub enum LiquidKind {
 #[derive(Clone, Debug, PartialEq)]
 pub struct Liquid {
     pub id: Ulid,
+    pub added_by: Ulid,
     pub name: String,
     pub kind: LiquidKind,
     pub hydratation: Ratio,
