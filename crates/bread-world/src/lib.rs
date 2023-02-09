@@ -1,7 +1,7 @@
 #[macro_use]
 extern crate log;
 
-use bread_world_models::BreadComposition;
+use bread_world_models::Dough;
 use uom::si::f64::{Mass, Ratio};
 use uom::si::mass::gram;
 use uom::si::ratio::ratio;
@@ -54,12 +54,7 @@ impl TargetBread {
     }
 }
 
-pub fn solve(
-    target: TargetBread,
-    hydratation: Ratio,
-    starter_hydratation: Ratio,
-    starter_ratio: Ratio,
-) -> BreadComposition {
+pub fn solve(target: TargetBread, hydratation: Ratio, starter_hydratation: Ratio, starter_ratio: Ratio) -> Dough {
     use ellp::*;
 
     let mut prob = Problem::new();
@@ -161,7 +156,7 @@ pub fn solve(
 
         debug!("Solution: {sol}");
 
-        let bread = BreadComposition {
+        let bread = Dough {
             total_flour: Mass::new::<gram>(sol[usize::from(total_flour)]),
             added_flour: Mass::new::<gram>(sol[usize::from(added_flour)]),
             total_water: Mass::new::<gram>(sol[usize::from(total_water)]),

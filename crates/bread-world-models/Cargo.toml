@@ -10,5 +10,6 @@ authors = ["Benoît CORTIER <bcortier@proton.me>"]
 publish = false
 
 [dependencies]
-uom = { version = "0.33.0", default-features = false, features = ["si", "f64"] }
-ulid = { version = "1.0.0", default-features = false }
+uom = { version = "0.33.0", default-features = false, features = ["si", "f64", "serde"] }
+ulid = { version = "1.0.0", default-features = false, features = ["serde"] }
+serde = { version = "1.0.152", default-features = false, features = ["derive"] }

@@ -1,18 +1,29 @@
+use serde::{Deserialize, Serialize};
 use ulid::Ulid;
 use uom::si::f64::{Mass, Ratio};
 
-#[derive(Clone, Debug, PartialEq)]
-pub struct Bread {
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+pub enum ProductKind {
+    Bread,
+    Pizza,
+}
+
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+pub struct Product {
     pub id: Ulid,
     pub baker: Ulid,
     pub name: String,
-    pub composition: BreadComposition,
+    pub kind: ProductKind,
+    pub dough: Dough,
     pub notes: String,
+    pub date: String,    // FIXME: use some other type here
+    pub country: String, // TODO: something like https://www.techighness.com/post/get-user-country-and-region-on-browser-with-javascript-only/
     pub pictures: Vec<Ulid>,
+    pub videos: Vec<Ulid>,
 }
 
-#[derive(Clone, Debug, PartialEq)]
-pub struct BreadComposition {
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+pub struct Dough {
     pub total_flour: Mass,
     pub added_flour: Mass,
     pub total_water: Mass,
@@ -23,12 +34,10 @@ pub struct BreadComposition {
     pub fresh_yeast: Mass,
     pub salt: Mass,
     pub protein_ratio: Ratio,
-    pub flours: Vec<(Ulid, Mass)>,
-    pub liquids: Vec<(Ulid, Mass)>,
-    pub fats: Vec<(Fat, Mass)>,
+    pub ingredients: Vec<(Ulid, Mass)>,
 }
 
-impl BreadComposition {
+impl Dough {
     pub fn total_weight(&self) -> Mass {
         self.total_flour + self.total_water + self.salt
     }
@@ -99,7 +108,7 @@ impl BreadComposition {
 /// pastries, a high protein flour makes a tough product.
 ///
 /// [Source](https://digitalcommons.unl.edu/cgi/viewcontent.cgi?article=1412)
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub enum FlourKind {
     /// Contains only the endosperm of wheat.
     ///
@@ -171,7 +180,7 @@ pub enum FlourKind {
 /// Wheat yielding a strong gluten is to be preferred when baking breads.
 ///
 /// See this [video](https://youtu.be/zDEcvSc2UKA) explaining why the glutent content is important.
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub enum WheatKind {
     /// 13-16.5% protein content
     ///
@@ -211,11 +220,11 @@ pub enum WheatKind {
     NotApplicable,
 }
 
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct Flour {
     pub id: Ulid,
-    pub added_by: Ulid,
     pub name: String,
+    pub added_by: Ulid,
     pub brand: String,
     pub kind: FlourKind,
     pub wheat: WheatKind,
@@ -230,18 +239,37 @@ pub struct Flour {
     pub ash: Ratio,
     pub notes: String,
     pub reference: String,
-    pub picture: String,
+    pub picture: Ulid,
 }
 
-/// Liquids are necessary in baked goods for hydrating protein, starch and leavening agents. When
-/// hydration occurs, water is absorbed and the chemical changes necessary for structure and texture
-/// development can take place. Liquids contribute moistness to the texture and improve the mouthfeel of
-/// baked products. When water vaporizes in a batter or dough, the steam expands the air cells, increasing
-/// the final volume of the product.
-///
-/// [Source](https://digitalcommons.unl.edu/cgi/viewcontent.cgi?article=1412)
-#[derive(Clone, Debug, PartialEq)]
-pub enum LiquidKind {
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+pub enum IngredientCategory {
+    /// Liquids are necessary in baked goods for hydrating protein, starch and leavening agents. When
+    /// hydration occurs, water is absorbed and the chemical changes necessary for structure and texture
+    /// development can take place. Liquids contribute moistness to the texture and improve the mouthfeel of
+    /// baked products. When water vaporizes in a batter or dough, the steam expands the air cells, increasing
+    /// the final volume of the product.
+    ///
+    /// [Source](https://digitalcommons.unl.edu/cgi/viewcontent.cgi?article=1412)
+    Liquid,
+    /// Fat, in the form of solid shortening, margarine, or butter; or in the liquid form of oil contributes
+    /// tenderness, moistness, and a smooth mouthfeel to baked goods. Fats enhance the flavors of other
+    /// ingredients as well as contributing its own flavor, as in the case of butter. In baked goods such as
+    /// muffins, reducing the amount of fat in a recipe results in a tougher product because gluten develops
+    /// more freely. Another tenderizing agent such as sugar can be added or increased to tenderize in place of
+    /// the fat. A small amount of fat in a yeast dough helps the gluten to stretch, yielding a loaf with greater
+    /// volume.
+    ///
+    /// [Source](https://digitalcommons.unl.edu/cgi/viewcontent.cgi?article=1412)
+    Fat,
+    Nuts,
+    Seeds,
+    Salt,
+    Mixed,
+}
+
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+pub enum IngredientKind {
     /// The neutral liquid for most products.
     Water,
     /// Milk contributes water and valuable nutrients to baked goods. It helps browning to occur and adds
@@ -261,31 +289,7 @@ pub enum LiquidKind {
     ///
     /// Around 90% of water.
     Beer,
-}
 
-#[derive(Clone, Debug, PartialEq)]
-pub struct Liquid {
-    pub id: Ulid,
-    pub added_by: Ulid,
-    pub name: String,
-    pub kind: LiquidKind,
-    pub hydratation: Ratio,
-    pub notes: String,
-    pub reference: String,
-    pub picture: String,
-}
-
-/// Fat, in the form of solid shortening, margarine, or butter; or in the liquid form of oil contributes
-/// tenderness, moistness, and a smooth mouthfeel to baked goods. Fats enhance the flavors of other
-/// ingredients as well as contributing its own flavor, as in the case of butter. In baked goods such as
-/// muffins, reducing the amount of fat in a recipe results in a tougher product because gluten develops
-/// more freely. Another tenderizing agent such as sugar can be added or increased to tenderize in place of
-/// the fat. A small amount of fat in a yeast dough helps the gluten to stretch, yielding a loaf with greater
-/// volume.
-///
-/// [Source](https://digitalcommons.unl.edu/cgi/viewcontent.cgi?article=1412)
-#[derive(Clone, Debug, PartialEq)]
-pub enum Fat {
     /// Shortening is 100 percent fat and is solid at room temperature. It is often made of
     /// hydrogenated (solidified by adding hydrogen) vegetable oils, but sometimes contains animal fats. The
     /// flakiness of pastry comes from solid fat such as shortening or lard rolled in layers with flour. In some
@@ -312,4 +316,47 @@ pub enum Fat {
     /// oil for butter or margarine, use 7/8 cup oil for 1 cup butter or margarine. If oil is used in place of a solid
     /// fat for some cake recipes, the texture will be heavier unless the sugar and egg are increased.
     Oil,
+
+    /// Other exotic ingredient.
+    Other,
 }
+
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+pub struct Ingredient {
+    pub id: Ulid,
+    pub name: String,
+    pub added_by: Ulid,
+    pub kind: IngredientKind,
+    pub category: IngredientCategory,
+    pub hydratation: Ratio,
+    /// https://opentextbc.ca/ingredients/chapter/sugar-chemistry/
+    pub sugar: Ratio,
+    /// Sodium chloride (NaCl), apprimately 40% of sodium ions (Na+) and 60% of chloride ions (Cl-).
+    pub salt: Ratio,
+    /// Roughly equivalent to "lipids"
+    pub fat: Ratio,
+    pub notes: Option<String>,
+    pub reference: Option<String>,
+    pub picture: Ulid,
+}
+
+// TODO: Nuts and Seeds: https://opentextbc.ca/ingredients/chapter/nuts-and-nut-like-ingredients/
+// TODO: Salt: https://opentextbc.ca/ingredients/chapter/functions-of-salt-in-baking/
+// TODO: Chocolate, cocoa, etc: https://opentextbc.ca/ingredients/part/chocolate-and-other-cocoa-products/
+// TODO: Eggs: https://opentextbc.ca/ingredients/chapter/the-function-of-eggs/
+
+// NOTE: CC-by book on ingredients: https://opentextbc.ca/ingredients/
+
+// NOTE: https://thesourdoughjourney.com/faq-bulk-fermentation-handling/
+
+// NOTE: https://github.com/hendricius/the-sourdough-framework
+
+// Table salt is a type of crystal made up of chlorine and sodium ions, or charged atoms. In its crystalline state, salt’s ions are positioned in a stable, geometric lattice. However, when mixed with an appropriate solvent such as water, salt dissolves, meaning that the ion lattice is forced apart by the solvent and the individual ions become enveloped by the solvent. This is exactly what occurs in a dough: crystalline salt is quickly dissolved by the dough’s liquid into sodium and chloride ions.
+//
+// The presence of any type of dissolved material, including ions, in the dough’s liquid phase affects the function of the yeast and lactobacilli living in the dough (all doughs, not just sourdoughs, contain acidifying bacteria which contribute to the bread¹s flavor). In an unsalted dough, water will move freely into the yeast or bacteria cell. However, if salt is added to the dough, osmotic pressure, determined by the amount of material dissolved in the dough’s liquid, will increase, drawing out some of the cell’s water and thus partially dehydrating it. Higher osmotic pressure also limits the amount of fermentable sugars able to pass into the cell. These two effects–a loss of cell pressure and a decrease in sugars–combine to slow the overall rate of fermentation of both organisms. If the percentage of salt added to a dough becomes too high, excessive dehydration will eventually kill the yeast and bacteria.
+//
+// Most scientists believe that at 2% of the flour weight or less, salt alone does not significantly alter either the yeast’s gassing power or the bacteria’s acid production. A study measuring the gas production in a fermenting dough has shown that gas production is retarded by only about 9% in a dough containing 1.5% salt (based on the flour weight).
+//
+// Although salt’s osmotic effect on fermentation reduction may be minor, it must be taken into consideration when attempting to maximize the build up of fermentation byproducts in pre-ferments. Thus, salt is always omitted in sponges, poolish, biga, and most other pre-ferments to ensure the greatest possible production of byproducts.
+//
+// Source: https://www.cargill.com/salt-in-perspective/salt-in-bread-dough
