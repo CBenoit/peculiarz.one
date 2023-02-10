@@ -389,7 +389,7 @@ impl Ingredient {
 // (1) <=> w⁻¹ = a⁻¹(a + b) = 1 + b.a⁻¹
 // and (2) <=> h⁻¹ = b.a⁻¹
 //
-// By injecting (2) into (1), we have
+// By injecting (2) into (1), we get
 // (3) w⁻¹ = 1 + h⁻¹
 //
 // (3) is a relation linking water ratio with hydratation.
@@ -405,14 +405,17 @@ impl Ingredient {
 /// Computes water ratio from hydratation
 pub fn hydratation_to_water_ratio(hydratation: Ratio) -> Ratio {
     assert!(hydratation.get::<ratio>() >= 0.);
+    assert!(hydratation.get::<ratio>() != f64::INFINITY); // This function doesn’t handle infinity correctly
     let water_ratio = hydratation / (hydratation + Ratio::new::<ratio>(1.));
-    debug_assert!(water_ratio.get::<ratio>() >= 0. && water_ratio.get::<ratio>() <= 1.);
+    debug_assert!(water_ratio.get::<ratio>() >= 0.);
+    debug_assert!(water_ratio.get::<ratio>() <= 1.);
     water_ratio
 }
 
 /// Computes hydratation from water ratio
 pub fn water_ratio_to_hydratation(water_ratio: Ratio) -> Ratio {
-    assert!(water_ratio.get::<ratio>() >= 0. && water_ratio.get::<ratio>() <= 1.);
+    assert!(water_ratio.get::<ratio>() >= 0.);
+    assert!(water_ratio.get::<ratio>() <= 1.);
     let hydratation = water_ratio / (Ratio::new::<ratio>(1.) - water_ratio);
     debug_assert!(hydratation.get::<ratio>() >= 0.);
     hydratation
@@ -474,4 +477,6 @@ mod tests {
         let actual_water_ratio = hydratation_to_water_ratio(hydratation);
         assert_f64_eq!(actual_water_ratio, expected_water_ratio);
     }
+
+    // TODO: proptest for total weight of dough
 }
