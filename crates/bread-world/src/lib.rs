@@ -10,7 +10,7 @@ macro_rules! debug_assert_f64_eq {
     ($a:expr, $b:expr) => {{
         let epsilon = $a * 0.001;
         debug_assert!(
-            $a - epsilon < $b && $a + epsilon > $b,
+            $a == $b || ($a - epsilon < $b && $a + epsilon > $b),
             "left: {}, right: {}",
             $a.value,
             $b.value
@@ -157,9 +157,9 @@ pub fn solve(target: TargetBread, hydratation: Ratio, starter_hydratation: Ratio
         debug!("Solution: {sol}");
 
         let bread = Dough {
-            total_flour: Mass::new::<gram>(sol[usize::from(total_flour)]),
+            flour: Mass::new::<gram>(sol[usize::from(total_flour)]),
             added_flour: Mass::new::<gram>(sol[usize::from(added_flour)]),
-            total_water: Mass::new::<gram>(sol[usize::from(total_water)]),
+            water: Mass::new::<gram>(sol[usize::from(total_water)]),
             added_water: Mass::new::<gram>(sol[usize::from(added_water)]),
             starter: Mass::new::<gram>(sol[usize::from(starter)]),
             starter_water: Mass::new::<gram>(sol[usize::from(starter_water)]),
@@ -189,7 +189,7 @@ mod tests {
         ($a:expr, $b:expr) => {{
             let epsilon = $a * 0.001;
             assert!(
-                $a - epsilon < $b && $a + epsilon > $b,
+                $a == $b || ($a - epsilon < $b && $a + epsilon > $b),
                 "left: {}, right: {}",
                 $a.value,
                 $b.value
@@ -206,9 +206,9 @@ mod tests {
             Ratio::new::<ratio>(0.2),
         );
 
-        assert_f64_eq!(bread.total_flour, Mass::new::<gram>(500.));
+        assert_f64_eq!(bread.flour, Mass::new::<gram>(500.));
         assert_f64_eq!(bread.added_flour, Mass::new::<gram>(433.));
-        assert_f64_eq!(bread.total_water, Mass::new::<gram>(375.));
+        assert_f64_eq!(bread.water, Mass::new::<gram>(375.));
         assert_f64_eq!(bread.added_water, Mass::new::<gram>(342.));
         assert_f64_eq!(bread.starter, Mass::new::<gram>(100.));
         assert_f64_eq!(bread.starter_water, Mass::new::<gram>(33.3333));
@@ -224,9 +224,9 @@ mod tests {
             Ratio::new::<ratio>(0.2),
         );
 
-        assert_f64_eq!(bread.total_flour, Mass::new::<gram>(565.));
+        assert_f64_eq!(bread.flour, Mass::new::<gram>(565.));
         assert_f64_eq!(bread.added_flour, Mass::new::<gram>(490.));
-        assert_f64_eq!(bread.total_water, Mass::new::<gram>(424.));
+        assert_f64_eq!(bread.water, Mass::new::<gram>(424.));
         assert_f64_eq!(bread.added_water, Mass::new::<gram>(386.));
         assert_f64_eq!(bread.starter, Mass::new::<gram>(113.));
         assert_f64_eq!(bread.starter_water, Mass::new::<gram>(37.647834));
@@ -242,9 +242,9 @@ mod tests {
             Ratio::new::<ratio>(0.2),
         );
 
-        assert_f64_eq!(bread.total_flour, Mass::new::<gram>(400.));
+        assert_f64_eq!(bread.flour, Mass::new::<gram>(400.));
         assert_f64_eq!(bread.added_flour, Mass::new::<gram>(347.));
-        assert_f64_eq!(bread.total_water, Mass::new::<gram>(300.));
+        assert_f64_eq!(bread.water, Mass::new::<gram>(300.));
         assert_f64_eq!(bread.added_water, Mass::new::<gram>(273.33333));
         assert_f64_eq!(bread.starter, Mass::new::<gram>(80.));
         assert_f64_eq!(bread.starter_water, Mass::new::<gram>(26.6666));

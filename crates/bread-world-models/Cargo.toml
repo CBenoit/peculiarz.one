@@ -11,5 +11,8 @@ publish = false
 
 [dependencies]
 uom = { version = "0.33.0", default-features = false, features = ["si", "f64", "serde"] }
-ulid = { version = "1.0.0", default-features = false, features = ["serde"] }
+ulid = { version = "1.0.0", default-features = false, features = ["serde", "std"] }
 serde = { version = "1.0.152", default-features = false, features = ["derive"] }
+
+[dev-dependencies]
+rstest = "0.16.0"

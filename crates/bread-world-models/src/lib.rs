@@ -1,11 +1,14 @@
 use serde::{Deserialize, Serialize};
 use ulid::Ulid;
 use uom::si::f64::{Mass, Ratio};
+use uom::si::mass::gram;
+use uom::si::ratio::ratio;
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub enum ProductKind {
     Bread,
     Pizza,
+    Pastry,
 }
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
@@ -15,106 +18,38 @@ pub struct Product {
     pub name: String,
     pub kind: ProductKind,
     pub dough: Dough,
-    pub notes: String,
-    pub date: String,    // FIXME: use some other type here
-    pub country: String, // TODO: something like https://www.techighness.com/post/get-user-country-and-region-on-browser-with-javascript-only/
+    pub date: String,            // FIXME: use some other type here
+    pub made_in: Option<String>, // TODO: something like https://www.techighness.com/post/get-user-country-and-region-on-browser-with-javascript-only/
+    pub notes: Option<String>,
     pub pictures: Vec<Ulid>,
     pub videos: Vec<Ulid>,
 }
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct Dough {
-    pub total_flour: Mass,
-    pub added_flour: Mass,
-    pub total_water: Mass,
-    pub added_water: Mass,
-    pub starter: Mass,
-    pub starter_water: Mass,
-    pub dry_yeast: Mass,
-    pub fresh_yeast: Mass,
-    pub salt: Mass,
-    pub protein_ratio: Ratio,
-    pub ingredients: Vec<(Ulid, Mass)>,
+    pub flour: Mass,
+    pub water: Mass,
+    pub protein: Mass,
+    pub flours: Vec<(Ulid, Mass)>,
+    pub other_ingredients: Vec<(Ulid, Mass)>,
 }
 
 impl Dough {
     pub fn total_weight(&self) -> Mass {
-        self.total_flour + self.total_water + self.salt
-    }
-
-    pub fn total_flour(&self) -> Mass {
-        self.total_flour
-    }
-
-    pub fn added_flour(&self) -> Mass {
-        self.added_flour
-    }
-
-    pub fn total_water(&self) -> Mass {
-        self.total_water
-    }
-
-    pub fn added_water(&self) -> Mass {
-        self.added_water
+        let sum = self.flours.iter().map(|(_, mass)| mass.get::<gram>()).sum::<f64>()
+            + self
+                .other_ingredients
+                .iter()
+                .map(|(_, mass)| mass.get::<gram>())
+                .sum::<f64>();
+        Mass::new::<gram>(sum)
     }
 
     pub fn hydratation(&self) -> Ratio {
-        self.total_water / self.total_flour
-    }
-
-    pub fn starter(&self) -> Mass {
-        self.starter
-    }
-
-    pub fn starter_flour(&self) -> Mass {
-        self.starter - self.starter_water
-    }
-
-    pub fn starter_water(&self) -> Mass {
-        self.starter_water
-    }
-
-    pub fn starter_hydratation(&self) -> Ratio {
-        self.starter_water / self.starter_flour()
-    }
-
-    pub fn starter_ratio(&self) -> Ratio {
-        self.starter / self.total_flour
-    }
-
-    pub fn dry_yeast(&self) -> Mass {
-        self.dry_yeast
-    }
-
-    pub fn fresh_yeast(&self) -> Mass {
-        self.fresh_yeast
-    }
-
-    pub fn salt(&self) -> Mass {
-        self.salt
-    }
-
-    pub fn protein_ratio(&self) -> Ratio {
-        self.protein_ratio
+        self.water / self.flour
     }
 }
 
-pub enum LeaveningAgentKind {
-    Sourdough,
-    Yeast,
-}
-
-pub struct LeaveningAgent {}
-
-/// Flour provides the structure in baked goods. Wheat flour contains proteins that interact with each other
-/// when mixed with water, forming gluten. It is this elastic gluten framework which stretches to contain the
-/// expanding leavening gases during rising. The protein content of a flour affects the strength of a dough.
-/// The different wheat flour types contain varying amounts of the gluten forming proteins. Hard wheat,
-/// mainly grown in midwestern U.S. has a high protein content. Soft wheat, grown in southern U.S. has
-/// less protein. In yeast breads, a strong gluten framework is desirable, but in cakes, quick breads and
-/// pastries, a high protein flour makes a tough product.
-///
-/// [Source](https://digitalcommons.unl.edu/cgi/viewcontent.cgi?article=1412)
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub enum FlourKind {
     /// Contains only the endosperm of wheat.
@@ -227,6 +162,15 @@ pub enum WheatKind {
     NotApplicable,
 }
 
+/// Flour provides the structure in baked goods. Wheat flour contains proteins that interact with each other
+/// when mixed with water, forming gluten. It is this elastic gluten framework which stretches to contain the
+/// expanding leavening gases during rising. The protein content of a flour affects the strength of a dough.
+/// The different wheat flour types contain varying amounts of the gluten forming proteins. Hard wheat,
+/// mainly grown in midwestern U.S. has a high protein content. Soft wheat, grown in southern U.S. has
+/// less protein. In yeast breads, a strong gluten framework is desirable, but in cakes, quick breads and
+/// pastries, a high protein flour makes a tough product.
+///
+/// [Source](https://digitalcommons.unl.edu/cgi/viewcontent.cgi?article=1412)
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct Flour {
     pub id: Ulid,
@@ -244,9 +188,9 @@ pub struct Flour {
     /// https://www.theartisan.net/flour_classification_of.htm
     /// https://bakerpedia.com/processes/ash-in-flour/
     pub ash: Ratio,
-    pub notes: String,
-    pub reference: String,
-    pub picture: Ulid,
+    pub notes: Option<String>,
+    pub reference: Option<String>,
+    pub picture: Option<Ulid>,
 }
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
@@ -277,12 +221,19 @@ pub enum IngredientCategory {
 }
 
 impl IngredientCategory {
+    pub const LEAVENING_AGENT_KINDS: &[IngredientKind] = &[
+        IngredientKind::SourdoughStarter,
+        IngredientKind::ActiveDryYeast,
+        IngredientKind::InstantDryYeast,
+        IngredientKind::FreshYeast,
+        IngredientKind::Beer,
+    ];
+
     pub const LIQUID_KINDS: &[IngredientKind] = &[
         IngredientKind::Water,
         IngredientKind::Milk,
         IngredientKind::Juice,
         IngredientKind::Broth,
-        IngredientKind::Beer,
         IngredientKind::Other,
     ];
 
@@ -299,12 +250,18 @@ impl IngredientCategory {
 
     pub const SEEDS_KINDS: &[IngredientKind] = &[IngredientKind::Other];
 
-    pub const SALT_KINDS: &[IngredientKind] = &[IngredientKind::TableSalt, Other];
+    pub const SALT_KINDS: &[IngredientKind] = &[
+        IngredientKind::TableSalt,
+        IngredientKind::MisoPaste,
+        IngredientKind::DashiPowder,
+        IngredientKind::Other,
+    ];
 
-    pub const MIXED_KINDS: &[IngredientKind] = &[IngredientKind::Eggs, Other];
+    pub const MIXED_KINDS: &[IngredientKind] = &[IngredientKind::Eggs, IngredientKind::Other];
 
-    pub fn kinds(&self) -> &[IngredientCategory] {
+    pub fn kinds(&self) -> &[IngredientKind] {
         match self {
+            IngredientCategory::LeaveningAgent => Self::LEAVENING_AGENT_KINDS,
             IngredientCategory::Liquid => Self::LIQUID_KINDS,
             IngredientCategory::Fat => Self::FAT_KINDS,
             IngredientCategory::Nuts => Self::NUTS_KINDS,
@@ -325,7 +282,10 @@ pub enum IngredientKind {
     InstantDryYeast,
     /// also called cake yeast is most commonly used in professional bakeries. It can be mixed directly into dry ingredients or dissolved in water to more evenly disperse it, but does not need to be proofed first.
     FreshYeast,
-    /// has carbon dioxide in it and is used as a wet ingredient to leaven beer bread.
+    /// Beer has carbon dioxide in it and is used as a wet ingredient to leaven beer bread.
+    ///
+    /// It contains yeast will cause the dough to rise and leaven.
+    /// Around 90% of water.
     Beer,
 
     /// The neutral liquid for most products.
@@ -343,10 +303,6 @@ pub enum IngredientKind {
     Juice,
     /// Broth adds nutriments, flavor and color to the final baked product.
     Broth,
-    /// Beer’s yeast will cause the dough to rise and leaven.
-    ///
-    /// Around 90% of water.
-    Beer,
 
     /// Shortening is 100 percent fat and is solid at room temperature. It is often made of
     /// hydrogenated (solidified by adding hydrogen) vegetable oils, but sometimes contains animal fats. The
@@ -376,6 +332,8 @@ pub enum IngredientKind {
     Oil,
 
     TableSalt,
+    MisoPaste,
+    DashiPowder,
 
     Eggs,
 
@@ -387,19 +345,77 @@ pub enum IngredientKind {
 pub struct Ingredient {
     pub id: Ulid,
     pub name: String,
+    pub brand: Option<String>,
     pub added_by: Ulid,
-    pub kind: IngredientKind,
     pub category: IngredientCategory,
-    pub hydratation: Ratio,
+    pub kind: IngredientKind,
+    /// Water content
+    pub water: Ratio,
     /// https://opentextbc.ca/ingredients/chapter/sugar-chemistry/
     pub sugar: Ratio,
-    /// Sodium chloride (NaCl), apprimately 40% of sodium ions (Na+) and 60% of chloride ions (Cl-).
+    /// Sodium chloride (NaCl), approximately 40% of sodium ions (Na+) and 60% of chloride ions (Cl-).
     pub salt: Ratio,
     /// Roughly equivalent to "lipids"
     pub fat: Ratio,
     pub notes: Option<String>,
     pub reference: Option<String>,
-    pub picture: Ulid,
+    pub picture: Option<Ulid>,
+}
+
+impl Ingredient {
+    /// Computes hydratation of the ingredient.
+    ///
+    /// Hydratation is the ratio `water content` : `total excluding water content`
+    /// This is different from the water ratio
+    /// which is the ratio `water content` : `total including water content`
+    pub fn hydratation(&self) -> Ratio {
+        water_ratio_to_hydratation(self.water)
+    }
+}
+
+// NOTE: `water ratio` <=> `hydratation` relation
+//
+// Let
+//     `a` be the water content,
+//     `b` the remaining content,
+//     `w` the water ratio,
+//     and `h` the hydratation
+//
+// We have
+//     (1) w = a(a + b)⁻¹
+//     (2) h = a.b⁻¹
+//
+// Thus
+// (1) <=> w⁻¹ = a⁻¹(a + b) = 1 + b.a⁻¹
+// and (2) <=> h⁻¹ = b.a⁻¹
+//
+// By injecting (2) into (1), we have
+// (3) w⁻¹ = 1 + h⁻¹
+//
+// (3) is a relation linking water ratio with hydratation.
+//
+// Furthermore,
+// (3) <=> h⁻¹ = w⁻¹ - 1
+//     <=> h = 1/(w⁻¹ - 1)
+//     <=> h = w/(1-w)
+// And
+// (3) <=> w = 1/(1 + h⁻¹)
+//     <=> w = h/(h + 1)
+
+/// Computes water ratio from hydratation
+pub fn hydratation_to_water_ratio(hydratation: Ratio) -> Ratio {
+    assert!(hydratation.get::<ratio>() >= 0.);
+    let water_ratio = hydratation / (hydratation + Ratio::new::<ratio>(1.));
+    debug_assert!(water_ratio.get::<ratio>() >= 0. && water_ratio.get::<ratio>() <= 1.);
+    water_ratio
+}
+
+/// Computes hydratation from water ratio
+pub fn water_ratio_to_hydratation(water_ratio: Ratio) -> Ratio {
+    assert!(water_ratio.get::<ratio>() >= 0. && water_ratio.get::<ratio>() <= 1.);
+    let hydratation = water_ratio / (Ratio::new::<ratio>(1.) - water_ratio);
+    debug_assert!(hydratation.get::<ratio>() >= 0.);
+    hydratation
 }
 
 // TODO: Nuts and Seeds: https://opentextbc.ca/ingredients/chapter/nuts-and-nut-like-ingredients/
@@ -422,3 +438,40 @@ pub struct Ingredient {
 // Although salt’s osmotic effect on fermentation reduction may be minor, it must be taken into consideration when attempting to maximize the build up of fermentation byproducts in pre-ferments. Thus, salt is always omitted in sponges, poolish, biga, and most other pre-ferments to ensure the greatest possible production of byproducts.
 //
 // Source: https://www.cargill.com/salt-in-perspective/salt-in-bread-dough
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use rstest::rstest;
+
+    macro_rules! assert_f64_eq {
+        ($a:expr, $b:expr) => {{
+            let epsilon = $a * 0.001;
+            assert!(
+                $a == $b || ($a - epsilon < $b && $a + epsilon > $b),
+                "left: {}, right: {}",
+                $a.value,
+                $b.value
+            )
+        }};
+    }
+
+    #[rstest]
+    #[case::water(Ratio::new::<ratio>(1.), Ratio::new::<ratio>(f64::INFINITY))]
+    #[case::stiff_starter(Ratio::new::<ratio>(1. / 3.), Ratio::new::<ratio>(0.5))]
+    #[case::standard_starter(Ratio::new::<ratio>(0.5), Ratio::new::<ratio>(1.))]
+    #[case::liquid_starter(Ratio::new::<ratio>(5. / 6.), Ratio::new::<ratio>(5.))]
+    fn water_ratio_to_hydratation_conversion(#[case] water_ratio: Ratio, #[case] expected_hydratation: Ratio) {
+        let actual_hydratation = water_ratio_to_hydratation(water_ratio);
+        assert_f64_eq!(actual_hydratation, expected_hydratation);
+    }
+
+    #[rstest]
+    #[case::stiff_starter(Ratio::new::<ratio>(1. / 3.), Ratio::new::<ratio>(0.5))]
+    #[case::standard_starter(Ratio::new::<ratio>(0.5), Ratio::new::<ratio>(1.))]
+    #[case::liquid_starter(Ratio::new::<ratio>(5. / 6.), Ratio::new::<ratio>(5.))]
+    fn hydratation_to_water_ratio_conversion(#[case] expected_water_ratio: Ratio, #[case] hydratation: Ratio) {
+        let actual_water_ratio = hydratation_to_water_ratio(hydratation);
+        assert_f64_eq!(actual_water_ratio, expected_water_ratio);
+    }
+}
