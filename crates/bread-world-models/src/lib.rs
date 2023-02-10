@@ -99,6 +99,13 @@ impl Dough {
     }
 }
 
+pub enum LeaveningAgentKind {
+    Sourdough,
+    Yeast,
+}
+
+pub struct LeaveningAgent {}
+
 /// Flour provides the structure in baked goods. Wheat flour contains proteins that interact with each other
 /// when mixed with water, forming gluten. It is this elastic gluten framework which stretches to contain the
 /// expanding leavening gases during rising. The protein content of a flour affects the strength of a dough.
@@ -244,6 +251,7 @@ pub struct Flour {
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub enum IngredientCategory {
+    LeaveningAgent,
     /// Liquids are necessary in baked goods for hydrating protein, starch and leavening agents. When
     /// hydration occurs, water is absorbed and the chemical changes necessary for structure and texture
     /// development can take place. Liquids contribute moistness to the texture and improve the mouthfeel of
@@ -309,6 +317,17 @@ impl IngredientCategory {
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub enum IngredientKind {
+    /// a live culture made of flour and water that once mixed begins to ferment, cultivating the naturally occurring wild yeasts and bacteria present within the mixture. A small portion of this culture is used to make your bread dough rise.
+    SourdoughStarter,
+    /// this dry, granular yeast is the most commonly used. It must be activated or proofed by dissolving it in warm water, ideally heated to 105ºF
+    ActiveDryYeast,
+    /// a dry, granular yeast that can be mixed directly in with your flour and does not require proofing. Use ⅓ to ½ less than active dry yeast
+    InstantDryYeast,
+    /// also called cake yeast is most commonly used in professional bakeries. It can be mixed directly into dry ingredients or dissolved in water to more evenly disperse it, but does not need to be proofed first.
+    FreshYeast,
+    /// has carbon dioxide in it and is used as a wet ingredient to leaven beer bread.
+    Beer,
+
     /// The neutral liquid for most products.
     Water,
     /// Milk contributes water and valuable nutrients to baked goods. It helps browning to occur and adds
