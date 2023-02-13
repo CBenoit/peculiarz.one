@@ -14,6 +14,7 @@ bread-world-models = { path = "../bread-world-models" }
 console_error_panic_hook = "0.1.7"
 console_log = "0.2.0"
 ellp = "0.2.0"
+ulid = { version = "1.0.0", default-features = false, features = ["std"] }
 log = "0.4.17"
 uom = { version = "0.33.0", default-features = false, features = ["si", "f64"] }
 web-sys = { version = "0.3.61", features = ["HtmlSelectElement", "HtmlInputElement"] }

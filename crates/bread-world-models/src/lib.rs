@@ -30,6 +30,7 @@ pub enum ProductKind {
 pub struct Dough {
     pub flour: Mass,
     pub water: Mass,
+    pub wheat_proteins: Mass,
     pub ingredients: Vec<(Ulid, Mass)>,
 }
 
@@ -45,6 +46,10 @@ impl Dough {
     pub fn hydratation(&self) -> Ratio {
         self.water / self.flour
     }
+
+    pub fn wheat_proteins_ratio(&self) -> Ratio {
+        self.wheat_proteins / self.flour
+    }
 }
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
@@ -55,7 +60,7 @@ pub struct Ingredient {
     pub category: IngredientCategory,
     pub kind: IngredientKind,
     /// Protein content.
-    pub protein: Ratio,
+    pub proteins: Ratio,
     /// Ash Content is the mineral material in flour.
     ///
     /// It is an indirect way to measure how much bran and germ
@@ -79,6 +84,8 @@ pub struct Ingredient {
 }
 
 impl Ingredient {
+    const NOT_ZERO_THRESHOLD: f64 = 0.001;
+
     /// Computes hydratation of the ingredient.
     ///
     /// Hydratation is the ratio `water content` : `total excluding water content`
@@ -86,6 +93,30 @@ impl Ingredient {
     /// which is the ratio `water content` : `total including water content`
     pub fn hydratation(&self) -> Ratio {
         water_ratio_to_hydratation(self.water)
+    }
+
+    pub fn flour_ratio(&self) -> Ratio {
+        if self.has_flour() {
+            Ratio::new::<ratio>(1.) - self.water
+        } else {
+            Ratio::new::<ratio>(0.)
+        }
+    }
+
+    pub fn has_flour(&self) -> bool {
+        self.category == IngredientCategory::Flour || self.kind == IngredientKind::SourdoughStarter
+    }
+
+    pub fn has_water(&self) -> bool {
+        self.water.get::<ratio>() > Self::NOT_ZERO_THRESHOLD
+    }
+
+    pub fn has_salt(&self) -> bool {
+        self.salt.get::<ratio>() > Self::NOT_ZERO_THRESHOLD
+    }
+
+    pub fn is_leavener(&self) -> bool {
+        self.category == IngredientCategory::Leavener
     }
 }
 
