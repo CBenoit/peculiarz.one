@@ -21,22 +21,43 @@ macro_rules! debug_assert_f64_eq {
 }
 
 #[derive(Clone, Copy)]
-pub enum Target {
-    Mass(Mass),
-    Ratio(Ratio),
-    Free,
+pub struct Target {
+    pub mass: Option<Mass>,
+    pub ratio: Option<Ratio>,
 }
 
 impl Target {
+    pub fn free() -> Self {
+        Self {
+            mass: None,
+            ratio: None,
+        }
+    }
+
+    pub fn by_mass(value: Mass) -> Self {
+        Self {
+            mass: Some(value),
+            ratio: None,
+        }
+    }
+
+    pub fn by_ratio(value: Ratio) -> Self {
+        Self {
+            mass: None,
+            ratio: Some(value),
+        }
+    }
+
     fn bound(self) -> ellp::Bound {
-        match self {
-            Self::Mass(mass) => ellp::Bound::Fixed(mass.get::<gram>()),
-            Self::Ratio(_) | Self::Free => ellp::Bound::Free,
+        if let Some(mass) = self.mass {
+            ellp::Bound::Fixed(mass.get::<gram>())
+        } else {
+            ellp::Bound::Free
         }
     }
 
     fn ratio(self) -> Option<f64> {
-        if let Self::Ratio(value) = self {
+        if let Some(value) = self.ratio {
             Some(value.get::<ratio>())
         } else {
             None
@@ -54,8 +75,6 @@ pub struct DoughProblem {
     pub wheat_proteins: Target,
     /// Dough hydratation
     pub hydratation: Ratio,
-    /// `total leavener` : `total flour` ratio
-    pub leavener_ratio: Ratio,
     /// `total salt` : `total flour` ratio
     pub salt_ratio: Ratio,
     /// Ingredients to be added to the dough
@@ -229,17 +248,6 @@ fn solve_impl(params: &DoughProblem) -> DoughSolution {
     problem
         .add_constraint(
             vec![(total_flour, params.hydratation.get::<ratio>()), (total_water, -1.)],
-            ConstraintOp::Eq,
-            0.,
-        )
-        .unwrap();
-
-    problem
-        .add_constraint(
-            vec![
-                (total_flour, params.leavener_ratio.get::<ratio>()),
-                (total_leavener, -1.),
-            ],
             ConstraintOp::Eq,
             0.,
         )
@@ -457,19 +465,24 @@ mod tests {
     }
 
     #[test]
-    fn solve_by_starter() {
+    fn solve_by_starter_mass() {
         let params = DoughProblem {
-            mass: Target::Free,
-            flour: Target::Free,
-            wheat_proteins: Target::Free,
+            mass: Target::free(),
+            flour: Target::free(),
+            wheat_proteins: Target::free(),
             hydratation: Ratio::new::<ratio>(0.75),
-            leavener_ratio: Ratio::new::<ratio>(0.2),
             salt_ratio: Ratio::new::<ratio>(0.02),
             ingredients: vec![
-                (white_flour(), Target::Free),
-                (stiff_sourdough_starter(), Target::Mass(Mass::new::<gram>(100.))),
-                (tap_water(), Target::Free),
-                (table_salt(), Target::Free),
+                (white_flour(), Target::free()),
+                (
+                    stiff_sourdough_starter(),
+                    Target {
+                        mass: Some(Mass::new::<gram>(100.)),
+                        ratio: Some(Ratio::new::<ratio>(0.2)),
+                    },
+                ),
+                (tap_water(), Target::free()),
+                (table_salt(), Target::free()),
             ],
         };
 
@@ -495,17 +508,16 @@ mod tests {
     #[test]
     fn solve_by_total_mass() {
         let params = DoughProblem {
-            mass: Target::Mass(Mass::new::<gram>(1000.)),
-            flour: Target::Free,
-            wheat_proteins: Target::Free,
+            mass: Target::by_mass(Mass::new::<gram>(1000.)),
+            flour: Target::free(),
+            wheat_proteins: Target::free(),
             hydratation: Ratio::new::<ratio>(0.75),
-            leavener_ratio: Ratio::new::<ratio>(0.2),
             salt_ratio: Ratio::new::<ratio>(0.02),
             ingredients: vec![
-                (white_flour(), Target::Free),
-                (stiff_sourdough_starter(), Target::Free),
-                (tap_water(), Target::Free),
-                (table_salt(), Target::Free),
+                (white_flour(), Target::free()),
+                (stiff_sourdough_starter(), Target::by_ratio(Ratio::new::<ratio>(0.2))),
+                (tap_water(), Target::free()),
+                (table_salt(), Target::free()),
             ],
         };
 
@@ -529,19 +541,18 @@ mod tests {
     }
 
     #[test]
-    fn solve_by_added_flour() {
+    fn solve_by_flour_content() {
         let params = DoughProblem {
-            mass: Target::Free,
-            flour: Target::Mass(Mass::new::<gram>(400.)),
-            wheat_proteins: Target::Free,
+            mass: Target::free(),
+            flour: Target::by_mass(Mass::new::<gram>(400.)),
+            wheat_proteins: Target::free(),
             hydratation: Ratio::new::<ratio>(0.75),
-            leavener_ratio: Ratio::new::<ratio>(0.2),
             salt_ratio: Ratio::new::<ratio>(0.02),
             ingredients: vec![
-                (white_flour(), Target::Free),
-                (stiff_sourdough_starter(), Target::Free),
-                (tap_water(), Target::Free),
-                (table_salt(), Target::Free),
+                (white_flour(), Target::free()),
+                (stiff_sourdough_starter(), Target::by_ratio(Ratio::new::<ratio>(0.2))),
+                (tap_water(), Target::free()),
+                (table_salt(), Target::free()),
             ],
         };
 
@@ -567,18 +578,17 @@ mod tests {
     #[test]
     fn solve_by_whole_wheat_flour() {
         let params = DoughProblem {
-            mass: Target::Free,
-            flour: Target::Mass(Mass::new::<gram>(400.)),
-            wheat_proteins: Target::Free,
+            mass: Target::free(),
+            flour: Target::by_mass(Mass::new::<gram>(400.)),
+            wheat_proteins: Target::free(),
             hydratation: Ratio::new::<ratio>(0.75),
-            leavener_ratio: Ratio::new::<ratio>(0.2),
             salt_ratio: Ratio::new::<ratio>(0.02),
             ingredients: vec![
-                (white_flour(), Target::Free),
-                (whole_wheat_flour(), Target::Ratio(Ratio::new::<ratio>(0.5))),
-                (stiff_sourdough_starter(), Target::Free),
-                (tap_water(), Target::Free),
-                (table_salt(), Target::Free),
+                (white_flour(), Target::free()),
+                (whole_wheat_flour(), Target::by_ratio(Ratio::new::<ratio>(0.5))),
+                (stiff_sourdough_starter(), Target::by_ratio(Ratio::new::<ratio>(0.2))),
+                (tap_water(), Target::free()),
+                (table_salt(), Target::free()),
             ],
         };
 
@@ -606,18 +616,17 @@ mod tests {
     #[test]
     fn solve_by_wheat_proteins() {
         let params = DoughProblem {
-            mass: Target::Mass(Mass::new::<gram>(750.)),
-            flour: Target::Free,
-            wheat_proteins: Target::Ratio(Ratio::new::<ratio>(0.15)),
+            mass: Target::by_mass(Mass::new::<gram>(750.)),
+            flour: Target::free(),
+            wheat_proteins: Target::by_ratio(Ratio::new::<ratio>(0.15)),
             hydratation: Ratio::new::<ratio>(0.85),
-            leavener_ratio: Ratio::new::<ratio>(0.2),
             salt_ratio: Ratio::new::<ratio>(0.02),
             ingredients: vec![
-                (white_flour(), Target::Free),
-                (gluten_powder(), Target::Free),
-                (stiff_sourdough_starter(), Target::Free),
-                (tap_water(), Target::Free),
-                (table_salt(), Target::Free),
+                (white_flour(), Target::free()),
+                (gluten_powder(), Target::free()),
+                (stiff_sourdough_starter(), Target::by_ratio(Ratio::new::<ratio>(0.2))),
+                (tap_water(), Target::free()),
+                (table_salt(), Target::free()),
             ],
         };
 
