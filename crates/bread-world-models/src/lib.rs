@@ -1,15 +1,9 @@
 use serde::{Deserialize, Serialize};
+use tap::prelude::*;
 use ulid::Ulid;
 use uom::si::f64::{Mass, Ratio};
 use uom::si::mass::gram;
 use uom::si::ratio::ratio;
-
-#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
-pub enum ProductKind {
-    Bread,
-    Pizza,
-    Pastry,
-}
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct Product {
@@ -26,23 +20,26 @@ pub struct Product {
 }
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+pub enum ProductKind {
+    Bread,
+    Pizza,
+    Pastry,
+}
+
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct Dough {
     pub flour: Mass,
     pub water: Mass,
-    pub protein: Mass,
-    pub flours: Vec<(Ulid, Mass)>,
-    pub other_ingredients: Vec<(Ulid, Mass)>,
+    pub ingredients: Vec<(Ulid, Mass)>,
 }
 
 impl Dough {
-    pub fn total_weight(&self) -> Mass {
-        let sum = self.flours.iter().map(|(_, mass)| mass.get::<gram>()).sum::<f64>()
-            + self
-                .other_ingredients
-                .iter()
-                .map(|(_, mass)| mass.get::<gram>())
-                .sum::<f64>();
-        Mass::new::<gram>(sum)
+    pub fn total_mass(&self) -> Mass {
+        self.ingredients
+            .iter()
+            .map(|(_, mass)| mass.get::<gram>())
+            .sum::<f64>()
+            .pipe(Mass::new::<gram>)
     }
 
     pub fn hydratation(&self) -> Ratio {
@@ -51,134 +48,13 @@ impl Dough {
 }
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
-pub enum FlourKind {
-    /// Contains only the endosperm of wheat.
-    ///
-    /// - Soft texture.
-    /// - Naturally reached the bleached state by aging.
-    /// - Best rise, lightweight breads.
-    /// - Oxygen in the air gradually frees the glutenin proteins’ end sulfur groups
-    ///    to react with each others and form ever longer gluten chains that give the dough
-    ///    greater elasticity.
-    WhiteUnbleached,
-    /// Contains only the endosperm of wheat.
-    ///
-    /// - Soft texture.
-    /// - Reached the bleached state using chemicals to speed up the aging process.
-    /// - Illegal in Europe and many other countries because process uses food
-    ///     additives such as chlorine, bromates, and peroxides. Do no use that.
-    WhiteBleached,
-    /// Contains the bran, the germ and the endosperm of wheat.
-    ///
-    /// - More flavorful and more nutritious.
-    /// - Coarse texture.
-    /// - More absorbent, it requires higher liquid ratio.
-    /// - Shorter shelf life
-    /// - Less rise, denser breads.
-    WholeWheat,
-    /// Flour made from rye kernels. Only the white endosperm is milled.
-    ///
-    /// - Off-white color.
-    /// - Low protein.
-    /// - Highly nutritious.
-    /// - Sour and nutty taste.
-    /// - Less rise, denser breads.
-    WhiteRye,
-    /// Flour made from rye kernels. The white endosperm and some of the germ are milled.
-    ///
-    /// - Pale coffee cream color.
-    /// - Low protein.
-    /// - Highly nutritious.
-    /// - Sour and nutty taste.
-    /// - Less rise, denser breads.
-    MediumRye,
-    /// Flour made from rye kernels. Only the bran layer is removed prior to milling.
-    ///
-    /// - Dark color.
-    /// - Low protein.
-    /// - Highly nutritious.
-    /// - Sour and nutty taste.
-    /// - Less rise, denser breads.
-    DarkRye,
-    /// Flour made from rye kernels. Contains the endosperm, the germ and the bran.
-    ///
-    /// - Coarser, whole grain flour.
-    /// - Low protein.
-    /// - Highly nutritious.
-    /// - Sour and nutty taste.
-    /// - Less rise, denser breads.
-    Pumpernickel,
-    /// High protein flour.
-    ///
-    /// - Typically extracted from hard wheat.
-    /// - Contains over 70% protein.
-    /// - Added to low protein flours like rye flour in order to boost the protein ratio.
-    /// - Less rise, denser breads.
-    GlutenPowder,
-}
-
-/// Wheat Type
-///
-/// Wheat yielding a strong gluten is to be preferred when baking breads.
-///
-/// See this [video](https://youtu.be/zDEcvSc2UKA) explaining why the glutent content is important.
-#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
-pub enum WheatKind {
-    /// 13-16.5% protein content
-    ///
-    /// - Very popular in US.
-    /// - Strong gluten.
-    HardRedSpring,
-    /// 10-13.5% protein content
-    ///
-    /// - Very popular in US.
-    /// - Strong gluten.
-    HardRedWinter,
-    /// 9-11% protein content
-    ///
-    /// - Weak gluten.
-    SoftRed,
-    /// 10-12% protein content
-    ///
-    /// - Strong gluten.
-    HardWhite,
-    /// 10-11% protein content
-    ///
-    /// - Very popular in Europe.
-    /// - Weak gluten.
-    SoftWhite,
-    /// 8-9% protein content
-    ///
-    /// - Weak gluten.
-    /// - Good for cakes.
-    Club,
-    /// 12-16% protein content
-    ///
-    /// - Strong gluten.
-    Durum,
-    /// Unknown
-    Unknown,
-    /// Not wheat (rye, …).
-    NotApplicable,
-}
-
-/// Flour provides the structure in baked goods. Wheat flour contains proteins that interact with each other
-/// when mixed with water, forming gluten. It is this elastic gluten framework which stretches to contain the
-/// expanding leavening gases during rising. The protein content of a flour affects the strength of a dough.
-/// The different wheat flour types contain varying amounts of the gluten forming proteins. Hard wheat,
-/// mainly grown in midwestern U.S. has a high protein content. Soft wheat, grown in southern U.S. has
-/// less protein. In yeast breads, a strong gluten framework is desirable, but in cakes, quick breads and
-/// pastries, a high protein flour makes a tough product.
-///
-/// [Source](https://digitalcommons.unl.edu/cgi/viewcontent.cgi?article=1412)
-#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
-pub struct Flour {
+pub struct Ingredient {
     pub id: Ulid,
     pub name: String,
     pub added_by: Ulid,
-    pub brand: String,
-    pub kind: FlourKind,
-    pub wheat: WheatKind,
+    pub category: IngredientCategory,
+    pub kind: IngredientKind,
+    /// Protein content.
     pub protein: Ratio,
     /// Ash Content is the mineral material in flour.
     ///
@@ -188,14 +64,99 @@ pub struct Flour {
     /// https://www.theartisan.net/flour_classification_of.htm
     /// https://bakerpedia.com/processes/ash-in-flour/
     pub ash: Ratio,
+    /// Water content
+    pub water: Ratio,
+    /// https://opentextbc.ca/ingredients/chapter/sugar-chemistry/
+    pub sugar: Ratio,
+    /// Sodium chloride (NaCl), approximately 40% of sodium ions (Na+) and 60% of chloride ions (Cl-).
+    pub salt: Ratio,
+    /// Roughly equivalent to "lipids"
+    pub fat: Ratio,
+    pub brand: Option<String>,
     pub notes: Option<String>,
     pub reference: Option<String>,
     pub picture: Option<Ulid>,
 }
 
+impl Ingredient {
+    /// Computes hydratation of the ingredient.
+    ///
+    /// Hydratation is the ratio `water content` : `total excluding water content`
+    /// This is different from the water ratio
+    /// which is the ratio `water content` : `total including water content`
+    pub fn hydratation(&self) -> Ratio {
+        water_ratio_to_hydratation(self.water)
+    }
+}
+
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub enum IngredientCategory {
-    LeaveningAgent,
+    /// Flour provides the structure in baked goods. Wheat flour contains proteins that interact with each other
+    /// when mixed with water, forming gluten. It is this elastic gluten framework which stretches to contain the
+    /// expanding leavening gases during rising. The protein content of a flour affects the strength of a dough.
+    /// The different wheat flour types contain varying amounts of the gluten forming proteins. Hard wheat,
+    /// mainly grown in midwestern U.S. has a high protein content. Soft wheat, grown in southern U.S. has
+    /// less protein. In yeast breads, a strong gluten framework is desirable, but in cakes, quick breads and
+    /// pastries, a high protein flour makes a tough product.
+    ///
+    /// [Source](https://digitalcommons.unl.edu/cgi/viewcontent.cgi?article=1412)
+    ///
+    /// Wheat type used to make the flour is important.
+    /// Wheat yielding a strong gluten is to be preferred when baking breads.
+    ///
+    /// See this [video](https://youtu.be/zDEcvSc2UKA) explaining why the gluten content is important.
+    ///
+    /// ## Hard red spring wheat:
+    ///   
+    /// - 13-16.5% protein content.
+    /// - Very popular in US.
+    /// - Strong gluten.
+    ///
+    /// ## Hard red winter wheat:
+    ///
+    /// - 10-13.5% protein content.
+    /// - Very popular in US.
+    /// - Strong gluten.
+    ///
+    /// ## Soft red wheat
+    ///
+    /// - 9-11% protein content.
+    /// - Weak gluten.
+    ///
+    /// ## Hard white wheat
+    ///
+    /// - 10-12% protein content.
+    /// - Strong gluten.
+    ///
+    /// ## Soft white wheat
+    ///
+    /// - 10-11% protein content
+    /// - Very popular in Europe.
+    /// - Weak gluten.
+    ///
+    /// ## Club wheat
+    ///
+    /// - 8-9% protein content
+    /// - Weak gluten.
+    /// - Good for cakes.
+    ///
+    /// ## Durum wheat
+    ///
+    /// - 12-16% protein content
+    /// - Strong gluten.
+    Flour,
+    /// In cooking, a leavening agent or raising agent, also called a leaven or leavener, is any one of a number of
+    /// substances used in doughs and batters that cause a foaming action (gas bubbles) that lightens and softens the
+    /// mixture. An alternative or supplement to leavening agents is mechanical action by which air is
+    /// incorporated (i.e. kneading). Leavening agents can be biological or synthetic chemical compounds.
+    /// The gas produced is often carbon dioxide, or occasionally hydrogen.
+    ///
+    /// When a dough or batter is mixed, the starch in the flour and the water in the dough form a matrix
+    /// (often supported further by proteins like gluten or polysaccharides, such as pentosans or xanthan gum).
+    /// The starch then gelatinizes and sets, leaving gas bubbles that remain.
+    ///
+    /// [Source](https://en.wikipedia.org/wiki/Leavening_agent)
+    Leavener,
     /// Liquids are necessary in baked goods for hydrating protein, starch and leavening agents. When
     /// hydration occurs, water is absorbed and the chemical changes necessary for structure and texture
     /// development can take place. Liquids contribute moistness to the texture and improve the mouthfeel of
@@ -221,6 +182,18 @@ pub enum IngredientCategory {
 }
 
 impl IngredientCategory {
+    pub const FLOUR_KINDS: &[IngredientKind] = &[
+        IngredientKind::WhiteFlourUnbleached,
+        IngredientKind::WhiteFlourBleached,
+        IngredientKind::WholeWheatFlour,
+        IngredientKind::WhiteRyeFlour,
+        IngredientKind::MediumRyeFlour,
+        IngredientKind::DarkRyeFlour,
+        IngredientKind::PumpernickelFlour,
+        IngredientKind::GlutenPowder,
+        IngredientKind::Other,
+    ];
+
     pub const LEAVENING_AGENT_KINDS: &[IngredientKind] = &[
         IngredientKind::SourdoughStarter,
         IngredientKind::ActiveDryYeast,
@@ -261,7 +234,8 @@ impl IngredientCategory {
 
     pub fn kinds(&self) -> &[IngredientKind] {
         match self {
-            IngredientCategory::LeaveningAgent => Self::LEAVENING_AGENT_KINDS,
+            IngredientCategory::Flour => Self::FLOUR_KINDS,
+            IngredientCategory::Leavener => Self::LEAVENING_AGENT_KINDS,
             IngredientCategory::Liquid => Self::LIQUID_KINDS,
             IngredientCategory::Fat => Self::FAT_KINDS,
             IngredientCategory::Nuts => Self::NUTS_KINDS,
@@ -274,6 +248,70 @@ impl IngredientCategory {
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub enum IngredientKind {
+    /// Contains only the endosperm of wheat.
+    ///
+    /// - Soft texture.
+    /// - Naturally reached the bleached state by aging.
+    /// - Best rise, lightweight breads.
+    /// - Oxygen in the air gradually frees the glutenin proteins’ end sulfur groups
+    ///    to react with each others and form ever longer gluten chains that give the dough
+    ///    greater elasticity.
+    WhiteFlourUnbleached,
+    /// Contains only the endosperm of wheat.
+    ///
+    /// - Soft texture.
+    /// - Reached the bleached state using chemicals to speed up the aging process.
+    /// - Illegal in Europe and many other countries because process uses food
+    ///     additives such as chlorine, bromates, and peroxides. Do no use that.
+    WhiteFlourBleached,
+    /// Contains the bran, the germ and the endosperm of wheat.
+    ///
+    /// - More flavorful and more nutritious.
+    /// - Coarse texture.
+    /// - More absorbent, it requires higher liquid ratio.
+    /// - Shorter shelf life
+    /// - Less rise, denser breads.
+    WholeWheatFlour,
+    /// Flour made from rye kernels. Only the white endosperm is milled.
+    ///
+    /// - Off-white color.
+    /// - Low protein.
+    /// - Highly nutritious.
+    /// - Sour and nutty taste.
+    /// - Less rise, denser breads.
+    WhiteRyeFlour,
+    /// Flour made from rye kernels. The white endosperm and some of the germ are milled.
+    ///
+    /// - Pale coffee cream color.
+    /// - Low protein.
+    /// - Highly nutritious.
+    /// - Sour and nutty taste.
+    /// - Less rise, denser breads.
+    MediumRyeFlour,
+    /// Flour made from rye kernels. Only the bran layer is removed prior to milling.
+    ///
+    /// - Dark color.
+    /// - Low protein.
+    /// - Highly nutritious.
+    /// - Sour and nutty taste.
+    /// - Less rise, denser breads.
+    DarkRyeFlour,
+    /// Flour made from rye kernels. Contains the endosperm, the germ and the bran.
+    ///
+    /// - Coarser, whole grain flour.
+    /// - Low protein.
+    /// - Highly nutritious.
+    /// - Sour and nutty taste.
+    /// - Less rise, denser breads.
+    PumpernickelFlour,
+    /// High protein flour.
+    ///
+    /// - Typically extracted from hard wheat.
+    /// - Contains over 70% protein.
+    /// - Added to low protein flours like rye flour in order to boost the protein ratio.
+    /// - Less rise, denser breads.
+    GlutenPowder,
+
     /// a live culture made of flour and water that once mixed begins to ferment, cultivating the naturally occurring wild yeasts and bacteria present within the mixture. A small portion of this culture is used to make your bread dough rise.
     SourdoughStarter,
     /// this dry, granular yeast is the most commonly used. It must be activated or proofed by dissolving it in warm water, ideally heated to 105ºF
@@ -339,38 +377,6 @@ pub enum IngredientKind {
 
     /// Other exotic ingredient.
     Other,
-}
-
-#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
-pub struct Ingredient {
-    pub id: Ulid,
-    pub name: String,
-    pub brand: Option<String>,
-    pub added_by: Ulid,
-    pub category: IngredientCategory,
-    pub kind: IngredientKind,
-    /// Water content
-    pub water: Ratio,
-    /// https://opentextbc.ca/ingredients/chapter/sugar-chemistry/
-    pub sugar: Ratio,
-    /// Sodium chloride (NaCl), approximately 40% of sodium ions (Na+) and 60% of chloride ions (Cl-).
-    pub salt: Ratio,
-    /// Roughly equivalent to "lipids"
-    pub fat: Ratio,
-    pub notes: Option<String>,
-    pub reference: Option<String>,
-    pub picture: Option<Ulid>,
-}
-
-impl Ingredient {
-    /// Computes hydratation of the ingredient.
-    ///
-    /// Hydratation is the ratio `water content` : `total excluding water content`
-    /// This is different from the water ratio
-    /// which is the ratio `water content` : `total including water content`
-    pub fn hydratation(&self) -> Ratio {
-        water_ratio_to_hydratation(self.water)
-    }
 }
 
 // NOTE: `water ratio` <=> `hydratation` relation
@@ -445,6 +451,8 @@ pub fn water_ratio_to_hydratation(water_ratio: Ratio) -> Ratio {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use proptest::collection::vec;
+    use proptest::prelude::*;
     use rstest::rstest;
 
     macro_rules! assert_f64_eq {
@@ -478,5 +486,17 @@ mod tests {
         assert_f64_eq!(actual_water_ratio, expected_water_ratio);
     }
 
-    // TODO: proptest for total weight of dough
+    #[test]
+    fn dough_total_mass() {
+        proptest!(|(masses in vec(50u32..1000, 1..5))| {
+            let expected_total_mass = masses.iter().sum::<u32>().pipe(f64::from).pipe(Mass::new::<gram>);
+            let dough = Dough {
+                flour: Mass::new::<gram>(0.),
+                water: Mass::new::<gram>(0.),
+                ingredients: masses.into_iter().map(|grams| (Ulid::new(), f64::from(grams).pipe(Mass::new::<gram>))).collect(),
+            };
+            let actual_total_mass = dough.total_mass();
+            assert_f64_eq!(actual_total_mass, expected_total_mass);
+        });
+    }
 }

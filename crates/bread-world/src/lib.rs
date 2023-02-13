@@ -1,7 +1,7 @@
 #[macro_use]
 extern crate log;
 
-use bread_world_models::Dough;
+use bread_world_models::{Dough, Ingredient, IngredientCategory, IngredientKind};
 use uom::si::f64::{Mass, Ratio};
 use uom::si::mass::gram;
 use uom::si::ratio::ratio;
@@ -18,86 +18,203 @@ macro_rules! debug_assert_f64_eq {
     }};
 }
 
-#[derive(Clone, Copy, Debug)]
-pub enum TargetBread {
-    /// How much flour to use
-    TotalWeight(Mass),
-    /// How much flour to use
-    Flour(Mass),
-    /// How much starter to use
-    Starter(Mass),
+#[derive(Clone, Copy)]
+pub enum Target {
+    Mass(Mass),
+    Ratio(Ratio),
+    Free,
 }
 
-impl TargetBread {
-    fn total_weight_bound(self) -> ellp::Bound {
-        if let Self::TotalWeight(mass) = self {
-            ellp::Bound::Fixed(mass.get::<gram>())
-        } else {
-            ellp::Bound::Free
+impl Target {
+    fn bound(self) -> ellp::Bound {
+        match self {
+            Self::Mass(mass) => ellp::Bound::Fixed(mass.get::<gram>()),
+            Self::Ratio(_) | Self::Free => ellp::Bound::Free,
         }
     }
 
-    fn flour_bound(self) -> ellp::Bound {
-        if let Self::Flour(mass) = self {
-            ellp::Bound::Fixed(mass.get::<gram>())
+    fn ratio(self) -> Option<f64> {
+        if let Self::Ratio(value) = self {
+            Some(value.get::<ratio>())
         } else {
-            ellp::Bound::Free
-        }
-    }
-
-    fn starter_bound(self) -> ellp::Bound {
-        if let Self::Starter(mass) = self {
-            ellp::Bound::Fixed(mass.get::<gram>())
-        } else {
-            ellp::Bound::Free
+            None
         }
     }
 }
 
-pub fn solve(target: TargetBread, hydratation: Ratio, starter_hydratation: Ratio, starter_ratio: Ratio) -> Dough {
+/// Dough problem to be solved into a concrete dough
+pub struct DoughProblem {
+    /// Total dough mass
+    pub mass: Target,
+    /// Total flour added to the dough
+    pub flour: Target,
+    /// Dough hydratation
+    pub hydratation: Ratio,
+    /// `total leavener` : `total flour` ratio
+    pub leavener_ratio: Ratio,
+    /// `total salt` : `total flour` ratio
+    pub salt_ratio: Ratio,
+    /// `total proteins` : `total flour` ratio
+    pub proteins_ratio: Ratio,
+    /// Ingredients to be added to the dough
+    pub ingredients: Vec<(Ingredient, Target)>,
+}
+
+impl DoughProblem {
+    pub fn solve(&self) -> Dough {
+        solve_impl(self)
+    }
+}
+
+fn solve_impl(param: &DoughProblem) -> Dough {
     use ellp::*;
+
+    const NOT_ZERO_THRESHOLD: f64 = 0.001;
+
+    struct FlourVariable {
+        id: ellp::problem::VariableId,
+        flour_ratio: f64,
+        relative_ratio: Option<f64>,
+    }
+
+    struct LiquidVariable {
+        id: ellp::problem::VariableId,
+        water_ratio: f64,
+        relative_ratio: Option<f64>,
+    }
+
+    struct LeavenerVariable {
+        id: ellp::problem::VariableId,
+        relative_ratio: Option<f64>,
+    }
+
+    struct SaltVariable {
+        id: ellp::problem::VariableId,
+        salt_ratio: f64,
+        relative_ratio: Option<f64>,
+    }
+
+    // TODO
+    struct ProteinVariable {
+        id: ellp::problem::VariableId,
+        protein_ratio: f64,
+        relative_ratio: Option<f64>,
+    }
 
     let mut prob = Problem::new();
 
-    let total_weight = prob
-        .add_var(1., target.total_weight_bound(), Some("total_weight".to_string()))
+    // Variables
+
+    let total_mass = prob
+        .add_var(1., param.mass.bound(), Some("total_mass".to_string()))
         .unwrap();
 
     let total_flour = prob
-        .add_var(1., target.flour_bound(), Some("total_flour".to_string()))
+        .add_var(1., param.flour.bound(), Some("total_flour".to_owned()))
         .unwrap();
-
-    let added_flour = prob.add_var(1., Bound::Free, Some("added_flour".to_owned())).unwrap();
 
     let total_water = prob.add_var(1., Bound::Free, Some("total_water".to_owned())).unwrap();
 
-    let added_water = prob.add_var(1., Bound::Free, Some("added_water".to_owned())).unwrap();
-
-    let starter = prob
-        .add_var(1., target.starter_bound(), Some("starter".to_string()))
+    let total_leavener = prob
+        .add_var(1., Bound::Free, Some("total_leavener".to_string()))
         .unwrap();
 
-    let starter_water = prob
-        .add_var(1., Bound::Free, Some("starter_water".to_string()))
-        .unwrap();
+    let total_salt = prob.add_var(1., Bound::Free, Some("total_salt".to_owned())).unwrap();
 
-    let starter_flour = prob
-        .add_var(1., Bound::Free, Some("starter_flour".to_string()))
-        .unwrap();
+    let flours = param
+        .ingredients
+        .iter()
+        .filter_map(|(ingredient, target)| {
+            if ingredient.category == IngredientCategory::Flour || ingredient.kind == IngredientKind::SourdoughStarter {
+                let flour_ratio = 1. - ingredient.water.get::<ratio>();
+                let name = ingredient.name.replace(" ", "_");
+                let id = prob.add_var(1., target.bound(), Some(name)).unwrap();
 
-    let salt = prob.add_var(1., Bound::Free, Some("salt".to_owned())).unwrap();
+                Some(FlourVariable {
+                    id,
+                    flour_ratio,
+                    relative_ratio: target.ratio(),
+                })
+            } else {
+                None
+            }
+        })
+        .collect();
+
+    let liquids = param
+        .ingredients
+        .iter()
+        .filter_map(|(ingredient, target)| {
+            if ingredient.water.get::<ratio>() > NOT_ZERO_THRESHOLD {
+                let water_ratio = ingredient.water.get::<ratio>();
+                let name = ingredient.name.replace(" ", "_");
+                let id = prob.add_var(1., target.bound(), Some(name)).unwrap();
+
+                Some(LiquidVariable {
+                    id,
+                    water_ratio,
+                    relative_ratio: target.ratio(),
+                })
+            } else {
+                None
+            }
+        })
+        .collect();
+
+    let leaveners = param
+        .ingredients
+        .iter()
+        .filter_map(|(ingredient, target)| {
+            if ingredient.category == IngredientCategory::Leavener {
+                let name = ingredient.name.replace(" ", "_");
+                let id = prob.add_var(1., target.bound(), Some(name)).unwrap();
+
+                Some(LeavenerVariable {
+                    id,
+                    relative_ratio: target.ratio(),
+                })
+            } else {
+                None
+            }
+        })
+        .collect();
+
+    let salts = param
+        .ingredients
+        .iter()
+        .filter_map(|(ingredient, target)| {
+            if ingredient.salt.get::<ratio>() > NOT_ZERO_THRESHOLD {
+                let salt_ratio = ingredient.salt.get::<ratio>();
+                let name = ingredient.name.replace(" ", "_");
+                let id = prob.add_var(1., target.bound(), Some(name)).unwrap();
+
+                Some(SaltVariable {
+                    id,
+                    salt_ratio,
+                    relative_ratio: target.ratio(),
+                })
+            } else {
+                None
+            }
+        })
+        .collect();
 
     // Sum constraints
 
     prob.add_constraint(
-        vec![(total_weight, 1.), (total_flour, -1.), (total_water, -1.), (salt, -1.)],
+        vec![
+            (total_mass, 1.),
+            (total_flour, -1.),
+            (total_water, -1.),
+            (total_salt, -1.),
+        ],
         ConstraintOp::Eq,
         0.,
     )
     .unwrap();
 
     prob.add_constraint(
-        vec![(total_flour, 1.), (added_flour, -1.), (starter_flour, -1.)],
+        vec![(total_flour, 1.), (total_flour, -1.), (starter_flour, -1.)],
         ConstraintOp::Eq,
         0.,
     )
@@ -143,7 +260,7 @@ pub fn solve(target: TargetBread, hydratation: Ratio, starter_hydratation: Ratio
     )
     .unwrap();
 
-    prob.add_constraint(vec![(total_flour, 0.02), (salt, -1.)], ConstraintOp::Eq, 0.)
+    prob.add_constraint(vec![(total_flour, 0.02), (total_salt, -1.)], ConstraintOp::Eq, 0.)
         .unwrap();
 
     debug!("Problem: {prob}");
@@ -158,22 +275,12 @@ pub fn solve(target: TargetBread, hydratation: Ratio, starter_hydratation: Ratio
 
         let bread = Dough {
             flour: Mass::new::<gram>(sol[usize::from(total_flour)]),
-            added_flour: Mass::new::<gram>(sol[usize::from(added_flour)]),
             water: Mass::new::<gram>(sol[usize::from(total_water)]),
-            added_water: Mass::new::<gram>(sol[usize::from(added_water)]),
-            starter: Mass::new::<gram>(sol[usize::from(starter)]),
-            starter_water: Mass::new::<gram>(sol[usize::from(starter_water)]),
-            salt: Mass::new::<gram>(sol[usize::from(salt)]),
+            ingredients: todo!(),
         };
 
-        debug_assert_f64_eq!(bread.total_weight(), Mass::new::<gram>(sol[usize::from(total_weight)]));
-        debug_assert_f64_eq!(bread.hydratation(), hydratation);
-        debug_assert_f64_eq!(
-            bread.starter_flour(),
-            Mass::new::<gram>(sol[usize::from(starter_flour)])
-        );
-        debug_assert_f64_eq!(bread.starter_hydratation(), starter_hydratation);
-        debug_assert_f64_eq!(bread.starter_ratio(), starter_ratio);
+        debug_assert_f64_eq!(bread.total_mass(), Mass::new::<gram>(sol[usize::from(total_mass)]));
+        debug_assert_f64_eq!(bread.hydratation(), self.hydratation);
 
         bread
     } else {

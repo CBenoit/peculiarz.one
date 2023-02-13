@@ -108,7 +108,7 @@ fn BreadCard(BreadCardProps { bread }: &BreadCardProps) -> Html {
                 <th>{ "Added Salt" }</th>
             </tr>
             <tr>
-                <td>{ format!("{:.0} g", bread.total_weight().get::<gram>()) }</td>
+                <td>{ format!("{:.0} g", bread.total_mass().get::<gram>()) }</td>
                 <td>{ format!("{:.0} g", bread.total_flour.get::<gram>()) }</td>
                 <td>{ format!("{:.0} g", bread.added_flour.get::<gram>()) }</td>
                 <td>{ format!("{:.0} ml", bread.total_water.get::<gram>()) }</td>
