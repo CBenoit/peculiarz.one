@@ -357,7 +357,7 @@ mod tests {
             brand: None,
             notes: None,
             reference: None,
-            picture: None,
+            pictures: Vec::new(),
         }
     }
 
@@ -377,7 +377,7 @@ mod tests {
             brand: None,
             notes: None,
             reference: None,
-            picture: None,
+            pictures: Vec::new(),
         }
     }
 
@@ -397,7 +397,7 @@ mod tests {
             brand: None,
             notes: None,
             reference: None,
-            picture: None,
+            pictures: Vec::new(),
         }
     }
 
@@ -417,7 +417,7 @@ mod tests {
             brand: None,
             notes: None,
             reference: None,
-            picture: None,
+            pictures: Vec::new(),
         }
     }
 
@@ -437,7 +437,7 @@ mod tests {
             brand: None,
             notes: None,
             reference: None,
-            picture: None,
+            pictures: Vec::new(),
         }
     }
 
@@ -461,7 +461,7 @@ mod tests {
             brand: None,
             notes: None,
             reference: None,
-            picture: None,
+            pictures: Vec::new(),
         }
     }
 
