@@ -324,9 +324,10 @@ fn solve_impl(params: &DoughProblem) -> DoughSolution {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
     use bread_world_models::{hydratation_to_water_ratio, IngredientCategory, IngredientKind};
     use ulid::Ulid;
+
+    use super::*;
 
     macro_rules! assert_f64_eq {
         ($a:expr, $b:expr) => {{

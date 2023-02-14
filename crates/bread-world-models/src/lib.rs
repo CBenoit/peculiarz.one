@@ -80,7 +80,7 @@ pub struct Ingredient {
     pub brand: Option<String>,
     pub notes: Option<String>,
     pub reference: Option<String>,
-    pub picture: Option<Ulid>,
+    pub pictures: Vec<Ulid>,
 }
 
 impl Ingredient {
@@ -481,10 +481,11 @@ pub fn water_ratio_to_hydratation(water_ratio: Ratio) -> Ratio {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
     use proptest::collection::vec;
     use proptest::prelude::*;
     use rstest::rstest;
+
+    use super::*;
 
     macro_rules! assert_f64_eq {
         ($a:expr, $b:expr) => {{

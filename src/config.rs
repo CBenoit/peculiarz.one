@@ -1,8 +1,6 @@
-use std::{
-    net::{IpAddr, Ipv6Addr},
-    path::PathBuf,
-    sync::Arc,
-};
+use std::net::{IpAddr, Ipv6Addr};
+use std::path::PathBuf;
+use std::sync::Arc;
 
 pub type ArcConfig = Arc<Config>;
 
@@ -11,6 +9,7 @@ pub struct Config {
     pub addr: IpAddr,
     pub port: u16,
     pub assets_dir: PathBuf,
+    pub database_path: PathBuf,
 }
 
 impl Config {
@@ -25,6 +24,7 @@ impl Config {
             addr: env::addr().unwrap_or(IpAddr::V6(Ipv6Addr::LOCALHOST)),
             port: env::port().unwrap_or(8888),
             assets_dir: env::assets_dir().unwrap_or_else(|| PathBuf::from("./assets/")),
+            database_path: env::database_path().unwrap_or_else(|| PathBuf::from("./database/")),
         }
     }
 }
@@ -43,5 +43,8 @@ mod env {
 
         assets_dir?, "PECULIARZONE_ASSETS_DIR", PathBuf,
         "PECULIARZONE_ASSETS_DIR: Directory where assets are to be found";
+
+        database_path?, "PECULIARZONE_DATABASE", PathBuf,
+        "PECULIARZONE_DATABASE: Path to the sled database";
     }
 }
