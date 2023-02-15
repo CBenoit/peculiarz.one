@@ -3,6 +3,7 @@ extern crate tracing;
 
 pub mod api;
 pub mod config;
+pub mod crud;
 
 use axum::extract::State;
 use axum::http::{Response, StatusCode};

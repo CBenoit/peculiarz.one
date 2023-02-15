@@ -26,6 +26,13 @@ impl ApiError {
         }
     }
 
+    pub fn internal(source: anyhow::Error) -> Self {
+        Self {
+            status_code: StatusCode::INTERNAL_SERVER_ERROR,
+            source,
+        }
+    }
+
     pub fn not_found(source: anyhow::Error) -> Self {
         Self {
             status_code: StatusCode::NOT_FOUND,
@@ -64,5 +71,17 @@ impl IntoResponse for ApiError {
         *response.status_mut() = self.status_code;
 
         response
+    }
+}
+
+pub struct ApiOk;
+
+impl IntoResponse for ApiOk {
+    fn into_response(self) -> Response {
+        Json(serde_json::json!({
+            "status": 200,
+            "details": "OK",
+        }))
+        .into_response()
     }
 }
