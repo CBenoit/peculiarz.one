@@ -30,6 +30,11 @@ pub fn make_router(state: AppState) -> Router {
         .route("/ingredients", patch(update_ingredient))
         .route("/ingredients", delete(delete_ingredients))
         .route("/ingredients/all", get(read_all_ingredients))
+        .route("/products", post(create_product))
+        .route("/products", get(read_products))
+        .route("/products", patch(update_product))
+        .route("/products", delete(delete_products))
+        .route("/products/all", get(read_all_products))
         .with_state(state)
 }
 
@@ -64,4 +69,31 @@ async fn delete_ingredients(Query(query): Query<ListQuery>, State(s): State<AppS
 
 async fn read_all_ingredients(State(s): State<AppState>) -> Result<Json<HashMap<Ulid, Ingredient>>, ApiError> {
     Ingredient::open_tree(&s.db)?.crud_read_all().map(Json)
+}
+
+async fn create_product(State(s): State<AppState>, Json(product): Json<Product>) -> Result<ApiOk, ApiError> {
+    Product::open_tree(&s.db)?
+        .crud_create(product.id, &product)
+        .map(|_| ApiOk)
+}
+
+async fn read_products(
+    Query(query): Query<ListQuery>,
+    State(s): State<AppState>,
+) -> Result<Json<HashMap<Ulid, Product>>, ApiError> {
+    Product::open_tree(&s.db)?.crud_read(query.ids).map(Json)
+}
+
+async fn update_product(State(s): State<AppState>, Json(product): Json<Product>) -> Result<ApiOk, ApiError> {
+    Product::open_tree(&s.db)?
+        .crud_update(product.id, &product)
+        .map(|_| ApiOk)
+}
+
+async fn delete_products(Query(query): Query<ListQuery>, State(s): State<AppState>) -> Result<ApiOk, ApiError> {
+    Product::open_tree(&s.db)?.crud_delete(query.ids).map(|_| ApiOk)
+}
+
+async fn read_all_products(State(s): State<AppState>) -> Result<Json<HashMap<Ulid, Product>>, ApiError> {
+    Product::open_tree(&s.db)?.crud_read_all().map(Json)
 }
