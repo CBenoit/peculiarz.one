@@ -1,5 +1,5 @@
 [package]
-name = "bread-world"
+name = "bread-world-web"
 version = "0.0.0"
 edition = "2021"
 readme = "README.md"
@@ -11,10 +11,15 @@ publish = false
 
 [dependencies]
 bread-world-models = { path = "../bread-world-models" }
-ellp = "0.2.0"
-ulid = { version = "1.0.0", default-features = false, features = ["std"] }
+bread-world = { path = "../bread-world" }
 log = "0.4.17"
 uom = { version = "0.33.0", default-features = false, features = ["si", "f64"] }
 
-[dev-dependencies]
-rstest = "0.16.0"
+# WebAssembly
+console_error_panic_hook = "0.1.7"
+console_log = "0.2.0"
+web-sys = { version = "0.3.61", features = ["HtmlSelectElement", "HtmlInputElement"] }
+yew = { version = "0.20.0", features = ["csr"] }
+
+# Enable WebAssembly support
+getrandom = { version = "*", features = ["js"] }

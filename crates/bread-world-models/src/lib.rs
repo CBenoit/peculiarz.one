@@ -525,6 +525,7 @@ mod tests {
             let dough = Dough {
                 flour: Mass::new::<gram>(0.),
                 water: Mass::new::<gram>(0.),
+                wheat_proteins: Mass::new::<gram>(0.),
                 ingredients: masses.into_iter().map(|grams| (Ulid::new(), f64::from(grams).pipe(Mass::new::<gram>))).collect(),
             };
             let actual_total_mass = dough.total_mass();

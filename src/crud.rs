@@ -76,7 +76,7 @@ impl TreeExt for sled::Tree {
         let key = key.to_key();
         let value = bincode::serialize(&value)?;
 
-        if self.contains_key(&key)? {
+        if self.contains_key(key)? {
             return Err(ApiError::conflict(anyhow::Error::msg("Already exists")));
         }
 
@@ -95,7 +95,7 @@ impl TreeExt for sled::Tree {
             .map(|key| {
                 let val = self
                     .get(key.to_key())?
-                    .with_context(|| format!("{} does not exist", key))
+                    .with_context(|| format!("{key} does not exist"))
                     .map_err(ApiError::not_found)?;
                 let val = bincode::deserialize(&val)?;
                 Ok((key, val))

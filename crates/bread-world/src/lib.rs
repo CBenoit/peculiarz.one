@@ -57,16 +57,12 @@ impl Target {
     }
 
     fn ratio(self) -> Option<f64> {
-        if let Some(value) = self.ratio {
-            Some(value.get::<ratio>())
-        } else {
-            None
-        }
+        self.ratio.map(|value| value.get::<ratio>())
     }
 }
 
 /// Dough problem to be solved into a concrete dough
-pub struct DoughProblem {
+pub struct DoughProblem<'a> {
     /// Total dough mass
     pub mass: Target,
     /// Total flour added to the dough
@@ -78,10 +74,59 @@ pub struct DoughProblem {
     /// `total salt` : `total flour` ratio
     pub salt_ratio: Ratio,
     /// Ingredients to be added to the dough
-    pub ingredients: Vec<(Ingredient, Target)>,
+    pub ingredients: Vec<(&'a Ingredient, Target)>,
 }
 
-impl DoughProblem {
+impl Default for DoughProblem<'_> {
+    fn default() -> Self {
+        Self {
+            mass: Target::free(),
+            flour: Target::free(),
+            wheat_proteins: Target::free(),
+            hydratation: Ratio::new::<ratio>(0.7),
+            salt_ratio: Ratio::new::<ratio>(0.02),
+            ingredients: Vec::with_capacity(8),
+        }
+    }
+}
+
+impl<'a> DoughProblem<'a> {
+    pub fn mass(mut self, mass: Target) -> Self {
+        self.mass = mass;
+        self
+    }
+
+    pub fn flour(mut self, flour: Target) -> Self {
+        self.flour = flour;
+        self
+    }
+
+    pub fn wheat_proteins(mut self, wheat_proteins: Target) -> Self {
+        self.wheat_proteins = wheat_proteins;
+        self
+    }
+
+    pub fn hydratation(mut self, hydratation: Ratio) -> Self {
+        self.hydratation = hydratation;
+        self
+    }
+
+    pub fn salt_ratio(mut self, salt_ratio: Ratio) -> Self {
+        self.salt_ratio = salt_ratio;
+        self
+    }
+
+    pub fn ingredient(mut self, ingredient: &'a Ingredient, target: Target) -> Self {
+        self.ingredients.push((ingredient, target));
+        self
+    }
+
+    pub fn add_ingredient(&mut self, ingredient: &'a Ingredient, target: Target) -> usize {
+        let idx = self.ingredients.len();
+        self.ingredients.push((ingredient, target));
+        idx
+    }
+
     pub fn solve(&self) -> DoughSolution {
         solve_impl(self)
     }
@@ -276,9 +321,7 @@ fn solve_impl(params: &DoughProblem) -> DoughSolution {
             continue;
         };
 
-        let total = if var.ingredient.is_leavener() {
-            total_flour
-        } else if var.ingredient.has_flour() {
+        let total = if var.ingredient.is_leavener() || var.ingredient.has_flour() {
             total_flour
         } else if var.ingredient.has_water() {
             total_water
@@ -325,6 +368,7 @@ fn solve_impl(params: &DoughProblem) -> DoughSolution {
 #[cfg(test)]
 mod tests {
     use bread_world_models::{hydratation_to_water_ratio, IngredientCategory, IngredientKind};
+    use rstest::{fixture, rstest};
     use ulid::Ulid;
 
     use super::*;
@@ -341,6 +385,7 @@ mod tests {
         }};
     }
 
+    #[fixture]
     fn table_salt() -> Ingredient {
         Ingredient {
             id: Ulid::new(),
@@ -361,6 +406,7 @@ mod tests {
         }
     }
 
+    #[fixture]
     fn white_flour() -> Ingredient {
         Ingredient {
             id: Ulid::new(),
@@ -381,6 +427,7 @@ mod tests {
         }
     }
 
+    #[fixture]
     fn whole_wheat_flour() -> Ingredient {
         Ingredient {
             id: Ulid::new(),
@@ -401,6 +448,7 @@ mod tests {
         }
     }
 
+    #[fixture]
     fn gluten_powder() -> Ingredient {
         Ingredient {
             id: Ulid::new(),
@@ -421,6 +469,7 @@ mod tests {
         }
     }
 
+    #[fixture]
     fn tap_water() -> Ingredient {
         Ingredient {
             id: Ulid::new(),
@@ -441,6 +490,7 @@ mod tests {
         }
     }
 
+    #[fixture]
     fn stiff_sourdough_starter() -> Ingredient {
         let water = hydratation_to_water_ratio(Ratio::new::<ratio>(0.5));
         let protein = (Ratio::new::<ratio>(1.) - water) * Ratio::new::<ratio>(0.14);
@@ -465,27 +515,24 @@ mod tests {
         }
     }
 
-    #[test]
-    fn solve_by_starter_mass() {
-        let params = DoughProblem {
-            mass: Target::free(),
-            flour: Target::free(),
-            wheat_proteins: Target::free(),
-            hydratation: Ratio::new::<ratio>(0.75),
-            salt_ratio: Ratio::new::<ratio>(0.02),
-            ingredients: vec![
-                (white_flour(), Target::free()),
-                (
-                    stiff_sourdough_starter(),
-                    Target {
-                        mass: Some(Mass::new::<gram>(100.)),
-                        ratio: Some(Ratio::new::<ratio>(0.2)),
-                    },
-                ),
-                (tap_water(), Target::free()),
-                (table_salt(), Target::free()),
-            ],
-        };
+    #[rstest]
+    fn solve_by_starter_mass(
+        white_flour: Ingredient,
+        stiff_sourdough_starter: Ingredient,
+        tap_water: Ingredient,
+        table_salt: Ingredient,
+    ) {
+        let mut params = DoughProblem::default().hydratation(Ratio::new::<ratio>(0.75));
+        let white_flour_idx = params.add_ingredient(&white_flour, Target::free());
+        let stiff_sourdough_starter_idx = params.add_ingredient(
+            &stiff_sourdough_starter,
+            Target {
+                mass: Some(Mass::new::<gram>(100.)),
+                ratio: Some(Ratio::new::<ratio>(0.2)),
+            },
+        );
+        let tap_water_idx = params.add_ingredient(&tap_water, Target::free());
+        let table_salt_idx = params.add_ingredient(&table_salt, Target::free());
 
         let dough = params.solve().into_found().expect("solution");
 
@@ -495,10 +542,10 @@ mod tests {
         assert_f64_eq!(dough.total_mass(), Mass::new::<gram>(885.));
         assert_f64_eq!(dough.wheat_proteins_ratio(), Ratio::new::<ratio>(0.131333));
 
-        let added_flour = dough.ingredients[0].1;
-        let starter = dough.ingredients[1].1;
-        let added_water = dough.ingredients[2].1;
-        let salt = dough.ingredients[3].1;
+        let added_flour = dough.ingredients[white_flour_idx].1;
+        let starter = dough.ingredients[stiff_sourdough_starter_idx].1;
+        let added_water = dough.ingredients[tap_water_idx].1;
+        let salt = dough.ingredients[table_salt_idx].1;
 
         assert_f64_eq!(added_flour, Mass::new::<gram>(433.));
         assert_f64_eq!(added_water, Mass::new::<gram>(342.));
@@ -506,21 +553,21 @@ mod tests {
         assert_f64_eq!(salt, Mass::new::<gram>(10.));
     }
 
-    #[test]
-    fn solve_by_total_mass() {
-        let params = DoughProblem {
-            mass: Target::by_mass(Mass::new::<gram>(1000.)),
-            flour: Target::free(),
-            wheat_proteins: Target::free(),
-            hydratation: Ratio::new::<ratio>(0.75),
-            salt_ratio: Ratio::new::<ratio>(0.02),
-            ingredients: vec![
-                (white_flour(), Target::free()),
-                (stiff_sourdough_starter(), Target::by_ratio(Ratio::new::<ratio>(0.2))),
-                (tap_water(), Target::free()),
-                (table_salt(), Target::free()),
-            ],
-        };
+    #[rstest]
+    fn solve_by_total_mass(
+        white_flour: Ingredient,
+        stiff_sourdough_starter: Ingredient,
+        tap_water: Ingredient,
+        table_salt: Ingredient,
+    ) {
+        let mut params = DoughProblem::default()
+            .mass(Target::by_mass(Mass::new::<gram>(1000.)))
+            .hydratation(Ratio::new::<ratio>(0.75));
+        let white_flour_idx = params.add_ingredient(&white_flour, Target::free());
+        let stiff_sourdough_starter_idx =
+            params.add_ingredient(&stiff_sourdough_starter, Target::by_ratio(Ratio::new::<ratio>(0.2)));
+        let tap_water_idx = params.add_ingredient(&tap_water, Target::free());
+        let table_salt_idx = params.add_ingredient(&table_salt, Target::free());
 
         let dough = params.solve().into_found().expect("solution");
 
@@ -530,10 +577,10 @@ mod tests {
         assert_f64_eq!(dough.total_mass(), Mass::new::<gram>(1000.));
         assert_f64_eq!(dough.wheat_proteins_ratio(), Ratio::new::<ratio>(0.131333));
 
-        let added_flour = dough.ingredients[0].1;
-        let starter = dough.ingredients[1].1;
-        let added_water = dough.ingredients[2].1;
-        let salt = dough.ingredients[3].1;
+        let added_flour = dough.ingredients[white_flour_idx].1;
+        let starter = dough.ingredients[stiff_sourdough_starter_idx].1;
+        let added_water = dough.ingredients[tap_water_idx].1;
+        let salt = dough.ingredients[table_salt_idx].1;
 
         assert_f64_eq!(added_flour, Mass::new::<gram>(490.));
         assert_f64_eq!(added_water, Mass::new::<gram>(386.));
@@ -541,21 +588,21 @@ mod tests {
         assert_f64_eq!(salt, Mass::new::<gram>(11.2994));
     }
 
-    #[test]
-    fn solve_by_flour_content() {
-        let params = DoughProblem {
-            mass: Target::free(),
-            flour: Target::by_mass(Mass::new::<gram>(400.)),
-            wheat_proteins: Target::free(),
-            hydratation: Ratio::new::<ratio>(0.75),
-            salt_ratio: Ratio::new::<ratio>(0.02),
-            ingredients: vec![
-                (white_flour(), Target::free()),
-                (stiff_sourdough_starter(), Target::by_ratio(Ratio::new::<ratio>(0.2))),
-                (tap_water(), Target::free()),
-                (table_salt(), Target::free()),
-            ],
-        };
+    #[rstest]
+    fn solve_by_flour_content(
+        white_flour: Ingredient,
+        stiff_sourdough_starter: Ingredient,
+        tap_water: Ingredient,
+        table_salt: Ingredient,
+    ) {
+        let mut params = DoughProblem::default()
+            .flour(Target::by_mass(Mass::new::<gram>(400.)))
+            .hydratation(Ratio::new::<ratio>(0.75));
+        let white_flour_idx = params.add_ingredient(&white_flour, Target::free());
+        let stiff_sourdough_starter_idx =
+            params.add_ingredient(&stiff_sourdough_starter, Target::by_ratio(Ratio::new::<ratio>(0.2)));
+        let tap_water_idx = params.add_ingredient(&tap_water, Target::free());
+        let table_salt_idx = params.add_ingredient(&table_salt, Target::free());
 
         let dough = params.solve().into_found().expect("solution");
 
@@ -565,10 +612,10 @@ mod tests {
         assert_f64_eq!(dough.total_mass(), Mass::new::<gram>(708.));
         assert_f64_eq!(dough.wheat_proteins_ratio(), Ratio::new::<ratio>(0.131333));
 
-        let added_flour = dough.ingredients[0].1;
-        let starter = dough.ingredients[1].1;
-        let added_water = dough.ingredients[2].1;
-        let salt = dough.ingredients[3].1;
+        let added_flour = dough.ingredients[white_flour_idx].1;
+        let starter = dough.ingredients[stiff_sourdough_starter_idx].1;
+        let added_water = dough.ingredients[tap_water_idx].1;
+        let salt = dough.ingredients[table_salt_idx].1;
 
         assert_f64_eq!(added_flour, Mass::new::<gram>(347.));
         assert_f64_eq!(added_water, Mass::new::<gram>(273.33333));
@@ -576,22 +623,24 @@ mod tests {
         assert_f64_eq!(salt, Mass::new::<gram>(8.));
     }
 
-    #[test]
-    fn solve_by_whole_wheat_flour() {
-        let params = DoughProblem {
-            mass: Target::free(),
-            flour: Target::by_mass(Mass::new::<gram>(400.)),
-            wheat_proteins: Target::free(),
-            hydratation: Ratio::new::<ratio>(0.75),
-            salt_ratio: Ratio::new::<ratio>(0.02),
-            ingredients: vec![
-                (white_flour(), Target::free()),
-                (whole_wheat_flour(), Target::by_ratio(Ratio::new::<ratio>(0.5))),
-                (stiff_sourdough_starter(), Target::by_ratio(Ratio::new::<ratio>(0.2))),
-                (tap_water(), Target::free()),
-                (table_salt(), Target::free()),
-            ],
-        };
+    #[rstest]
+    fn solve_by_whole_wheat_flour(
+        white_flour: Ingredient,
+        whole_wheat_flour: Ingredient,
+        stiff_sourdough_starter: Ingredient,
+        tap_water: Ingredient,
+        table_salt: Ingredient,
+    ) {
+        let mut params = DoughProblem::default()
+            .flour(Target::by_mass(Mass::new::<gram>(400.)))
+            .hydratation(Ratio::new::<ratio>(0.75));
+        let white_flour_idx = params.add_ingredient(&white_flour, Target::free());
+        let whole_wheat_flour_idx =
+            params.add_ingredient(&whole_wheat_flour, Target::by_ratio(Ratio::new::<ratio>(0.5)));
+        let stiff_sourdough_starter_idx =
+            params.add_ingredient(&stiff_sourdough_starter, Target::by_ratio(Ratio::new::<ratio>(0.2)));
+        let tap_water_idx = params.add_ingredient(&tap_water, Target::free());
+        let table_salt_idx = params.add_ingredient(&table_salt, Target::free());
 
         let dough = params.solve().into_found().expect("solution");
 
@@ -601,11 +650,11 @@ mod tests {
         assert_f64_eq!(dough.total_mass(), Mass::new::<gram>(708.));
         assert_f64_eq!(dough.wheat_proteins_ratio(), Ratio::new::<ratio>(0.136333));
 
-        let white_flour = dough.ingredients[0].1;
-        let whole_wheat_flour = dough.ingredients[1].1;
-        let starter = dough.ingredients[2].1;
-        let added_water = dough.ingredients[3].1;
-        let salt = dough.ingredients[4].1;
+        let white_flour = dough.ingredients[white_flour_idx].1;
+        let whole_wheat_flour = dough.ingredients[whole_wheat_flour_idx].1;
+        let starter = dough.ingredients[stiff_sourdough_starter_idx].1;
+        let added_water = dough.ingredients[tap_water_idx].1;
+        let salt = dough.ingredients[table_salt_idx].1;
 
         assert_f64_eq!(white_flour, Mass::new::<gram>(146.6666));
         assert_f64_eq!(whole_wheat_flour, Mass::new::<gram>(200.));
@@ -614,22 +663,24 @@ mod tests {
         assert_f64_eq!(salt, Mass::new::<gram>(8.));
     }
 
-    #[test]
-    fn solve_by_wheat_proteins() {
-        let params = DoughProblem {
-            mass: Target::by_mass(Mass::new::<gram>(750.)),
-            flour: Target::free(),
-            wheat_proteins: Target::by_ratio(Ratio::new::<ratio>(0.15)),
-            hydratation: Ratio::new::<ratio>(0.85),
-            salt_ratio: Ratio::new::<ratio>(0.02),
-            ingredients: vec![
-                (white_flour(), Target::free()),
-                (gluten_powder(), Target::free()),
-                (stiff_sourdough_starter(), Target::by_ratio(Ratio::new::<ratio>(0.2))),
-                (tap_water(), Target::free()),
-                (table_salt(), Target::free()),
-            ],
-        };
+    #[rstest]
+    fn solve_by_wheat_proteins(
+        white_flour: Ingredient,
+        gluten_powder: Ingredient,
+        stiff_sourdough_starter: Ingredient,
+        tap_water: Ingredient,
+        table_salt: Ingredient,
+    ) {
+        let mut params = DoughProblem::default()
+            .mass(Target::by_mass(Mass::new::<gram>(750.)))
+            .wheat_proteins(Target::by_ratio(Ratio::new::<ratio>(0.15)))
+            .hydratation(Ratio::new::<ratio>(0.85));
+        let white_flour_idx = params.add_ingredient(&white_flour, Target::free());
+        let gluten_powder_idx = params.add_ingredient(&gluten_powder, Target::free());
+        let stiff_sourdough_starter_idx =
+            params.add_ingredient(&stiff_sourdough_starter, Target::by_ratio(Ratio::new::<ratio>(0.2)));
+        let tap_water_idx = params.add_ingredient(&tap_water, Target::free());
+        let table_salt_idx = params.add_ingredient(&table_salt, Target::free());
 
         let dough = params.solve().into_found().expect("solution");
 
@@ -639,11 +690,11 @@ mod tests {
         assert_f64_eq!(dough.total_mass(), Mass::new::<gram>(750.));
         assert_f64_eq!(dough.wheat_proteins_ratio(), Ratio::new::<ratio>(0.15));
 
-        let added_flour = dough.ingredients[0].1;
-        let gluten_powder = dough.ingredients[1].1;
-        let starter = dough.ingredients[2].1;
-        let added_water = dough.ingredients[3].1;
-        let salt = dough.ingredients[4].1;
+        let added_flour = dough.ingredients[white_flour_idx].1;
+        let gluten_powder = dough.ingredients[gluten_powder_idx].1;
+        let starter = dough.ingredients[stiff_sourdough_starter_idx].1;
+        let added_water = dough.ingredients[tap_water_idx].1;
+        let salt = dough.ingredients[table_salt_idx].1;
 
         assert_f64_eq!(added_flour, Mass::new::<gram>(334.9043));
         assert_f64_eq!(gluten_powder, Mass::new::<gram>(12.6892));

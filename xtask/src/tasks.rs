@@ -5,7 +5,7 @@ use xshell::{cmd, Shell};
 
 use crate::section::Section;
 
-const WASM_PACKAGES: &[&str] = &["bread-world", "knowledge"];
+const WASM_PACKAGES: &[&str] = &["bread-world-web", "knowledge-web"];
 const CARGO: &str = env!("CARGO");
 
 pub fn dist(sh: &Shell) -> Result<()> {
