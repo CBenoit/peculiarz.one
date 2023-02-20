@@ -8,11 +8,10 @@ use bread_world_models::{Ingredient, Product};
 use serde::Deserialize;
 use ulid::Ulid;
 
+use super::ApiOk;
 use crate::api::ApiError;
 use crate::crud::{Model, TreeExt};
 use crate::AppState;
-
-use super::ApiOk;
 
 impl Model for Ingredient {
     const TREE_ID: &'static str = "bread-world/ingredients";

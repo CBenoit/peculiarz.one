@@ -28,7 +28,7 @@ Total Weight  Total Flour  Added Flour  Total Water  Added Water  Total Starter 
 + 1 lamination
 + 4 coil folds with 1 hour interval
 + shaping at 22h00 (two folds and roll technique), got a decent shape, I applied in banneton stitching in order to further increase strength. I’m unsure whether that was a good idea or not.
-+ overnight proofing
++ Overnight fridge proofing
 + baked at 10h00 next morning (30 minutes steam, 15-20 minutes without steam)
 
 Very satisfying bread!
@@ -54,7 +54,7 @@ Total Weight  Total Flour  Added Flour  Total Water  Added Water  Total Starter 
 + 3 coil folds (very elastic, couldn’t really stretch) with 30-45 minutes interval
 + overnight fermentation
 + shaped at 9h30 next morning (two folds and roll). I failed at shaping the bread properly. I tried to apply in-banneton stitching, that WASN’T a great idea, resulted in worse shape
-+ fridge proofing
++ Overnight fridge proofing
 + baked at 10h00 next morning
 
 Mie trop élastique et trop humide après la cuisson "standard".
@@ -100,9 +100,9 @@ DoughProblem {
 
 Bulk fermentation :9h
 1 lamination 
-6 coil fold 
+6 coil folds 
 Shaping : 18h30
-Overnight fermentation in fridge 
+Overnight fridge proofing
 Baked : le 15 février à 17h
 
 Keeps its shape nicely 
@@ -124,5 +124,8 @@ added_water = 305g
 salt = 20g
 
 fermentation: 10h
-
-WIP…
+1 lamination 
+6 coil folds 
+Shaping : 23h59
+Overnight fridge proofing
+Baked : le 20 février à ?h

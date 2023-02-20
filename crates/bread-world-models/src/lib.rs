@@ -1,3 +1,7 @@
+use core::fmt;
+use std::collections::HashMap;
+use std::str::FromStr;
+
 use serde::{Deserialize, Serialize};
 use tap::prelude::*;
 use ulid::Ulid;
@@ -17,6 +21,12 @@ pub struct Product {
     pub notes: Option<String>,
     pub pictures: Vec<Ulid>,
     pub videos: Vec<Ulid>,
+}
+
+impl Product {
+    pub fn fmt(&self) -> ProductFmt<'_> {
+        ProductFmt::new(self)
+    }
 }
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
@@ -49,6 +59,10 @@ impl Dough {
 
     pub fn wheat_proteins_ratio(&self) -> Ratio {
         self.wheat_proteins / self.flour
+    }
+
+    pub fn fmt(&self) -> DoughFmt<'_> {
+        DoughFmt::new(self)
     }
 }
 
@@ -107,6 +121,10 @@ impl Ingredient {
         self.category == IngredientCategory::Flour || self.kind == IngredientKind::SourdoughStarter
     }
 
+    pub fn has_proteins(&self) -> bool {
+        self.proteins.get::<ratio>() > Self::NOT_ZERO_THRESHOLD
+    }
+
     pub fn has_water(&self) -> bool {
         self.water.get::<ratio>() > Self::NOT_ZERO_THRESHOLD
     }
@@ -117,6 +135,18 @@ impl Ingredient {
 
     pub fn is_leavener(&self) -> bool {
         self.category == IngredientCategory::Leavener
+    }
+
+    pub fn has_sugar(&self) -> bool {
+        self.sugar.get::<ratio>() > Self::NOT_ZERO_THRESHOLD
+    }
+
+    pub fn has_fat(&self) -> bool {
+        self.fat.get::<ratio>() > Self::NOT_ZERO_THRESHOLD
+    }
+
+    pub fn fmt(&self) -> IngredientFmt<'_> {
+        IngredientFmt::new(self)
     }
 }
 
@@ -265,15 +295,46 @@ impl IngredientCategory {
 
     pub fn kinds(&self) -> &[IngredientKind] {
         match self {
-            IngredientCategory::Flour => Self::FLOUR_KINDS,
-            IngredientCategory::Leavener => Self::LEAVENING_AGENT_KINDS,
-            IngredientCategory::Liquid => Self::LIQUID_KINDS,
-            IngredientCategory::Fat => Self::FAT_KINDS,
-            IngredientCategory::Nuts => Self::NUTS_KINDS,
-            IngredientCategory::Seeds => Self::SEEDS_KINDS,
-            IngredientCategory::Salt => Self::SALT_KINDS,
-            IngredientCategory::Mixed => Self::MIXED_KINDS,
+            Self::Flour => Self::FLOUR_KINDS,
+            Self::Leavener => Self::LEAVENING_AGENT_KINDS,
+            Self::Liquid => Self::LIQUID_KINDS,
+            Self::Fat => Self::FAT_KINDS,
+            Self::Nuts => Self::NUTS_KINDS,
+            Self::Seeds => Self::SEEDS_KINDS,
+            Self::Salt => Self::SALT_KINDS,
+            Self::Mixed => Self::MIXED_KINDS,
         }
+    }
+}
+
+#[derive(Debug)]
+pub struct UnknownCategory;
+
+impl fmt::Display for UnknownCategory {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "Unknown ingredient category")
+    }
+}
+
+impl std::error::Error for UnknownCategory {}
+
+impl FromStr for IngredientCategory {
+    type Err = UnknownCategory;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        let category = match s.to_lowercase().as_str() {
+            "flour" => Self::Flour,
+            "leavener" => Self::Leavener,
+            "liquid" => Self::Liquid,
+            "fat" => Self::Fat,
+            "nuts" => Self::Nuts,
+            "seeds" => Self::Seeds,
+            "salt" => Self::Salt,
+            "mixed" => Self::Mixed,
+            _ => return Err(UnknownCategory),
+        };
+
+        Ok(category)
     }
 }
 
@@ -410,6 +471,56 @@ pub enum IngredientKind {
     Other,
 }
 
+#[derive(Debug)]
+pub struct UnknownKind;
+
+impl fmt::Display for UnknownKind {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "Unknown ingredient kind")
+    }
+}
+
+impl std::error::Error for UnknownKind {}
+
+impl FromStr for IngredientKind {
+    type Err = UnknownKind;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        let category = match s.to_lowercase().as_str() {
+            "whiteflourunbleached" => Self::WhiteFlourUnbleached,
+            "whiteflourbleached" => Self::WhiteFlourBleached,
+            "wholewheatflour" => Self::WholeWheatFlour,
+            "whiteryeflour" => Self::WhiteRyeFlour,
+            "mediumryeflour" => Self::MediumRyeFlour,
+            "darkryeflour" => Self::DarkRyeFlour,
+            "pumpernickelflour" => Self::PumpernickelFlour,
+            "glutenpowder" => Self::GlutenPowder,
+            "sourdoughstarter" => Self::SourdoughStarter,
+            "activedryyeast" => Self::ActiveDryYeast,
+            "instantdryyeast" => Self::InstantDryYeast,
+            "freshyeast" => Self::FreshYeast,
+            "beer" => Self::Beer,
+            "water" => Self::Water,
+            "milk" => Self::Milk,
+            "juice" => Self::Juice,
+            "broth" => Self::Broth,
+            "shortening" => Self::Shortening,
+            "butter" => Self::Butter,
+            "margarine" => Self::Margarine,
+            "reducedfatsubstitute" => Self::ReducedFatSubstitute,
+            "oil" => Self::Oil,
+            "tablesalt" => Self::TableSalt,
+            "misopaste" => Self::MisoPaste,
+            "dashipowder" => Self::DashiPowder,
+            "eggs" => Self::Eggs,
+            "other" => Self::Other,
+            _ => return Err(UnknownKind),
+        };
+
+        Ok(category)
+    }
+}
+
 // NOTE: `water ratio` <=> `hydratation` relation
 //
 // Let
@@ -478,6 +589,205 @@ pub fn water_ratio_to_hydratation(water_ratio: Ratio) -> Ratio {
 // Although salt’s osmotic effect on fermentation reduction may be minor, it must be taken into consideration when attempting to maximize the build up of fermentation byproducts in pre-ferments. Thus, salt is always omitted in sponges, poolish, biga, and most other pre-ferments to ensure the greatest possible production of byproducts.
 //
 // Source: https://www.cargill.com/salt-in-perspective/salt-in-bread-dough
+
+pub struct ProductFmt<'a> {
+    inner: &'a Product,
+    ingredients: Vec<&'a Ingredient>,
+}
+
+impl<'a> ProductFmt<'a> {
+    pub fn new(product: &'a Product) -> Self {
+        Self {
+            inner: product,
+            ingredients: Vec::new(),
+        }
+    }
+
+    pub fn with(mut self, ingredient: &'a Ingredient) -> Self {
+        self.ingredients.push(ingredient);
+        self
+    }
+}
+
+impl fmt::Display for ProductFmt<'_> {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        writeln!(f, "{}", self.inner.name)?;
+        writeln!(f, "| ID := {}", self.inner.id)?;
+        writeln!(f, "| Baker := {}", self.inner.baker)?;
+        writeln!(f, "| Kind := {:?}", self.inner.kind)?;
+        writeln!(f, "| Date := {}", self.inner.date)?;
+
+        if let Some(made_in) = &self.inner.made_in {
+            writeln!(f, "| Made In := {made_in}")?;
+        }
+
+        if !self.inner.pictures.is_empty() {
+            writeln!(f, "| Picture IDs := {:?}", self.inner.pictures)?;
+        }
+
+        if !self.inner.videos.is_empty() {
+            writeln!(f, "| Video IDs := {:?}", self.inner.videos)?;
+        }
+
+        let dough_fmt = self
+            .ingredients
+            .iter()
+            .fold(self.inner.dough.fmt(), |fmt, ingredient| fmt.with(ingredient))
+            .with_indent("  ");
+        writeln!(f, "| Dough ⤵\n{dough_fmt}")?;
+
+        if let Some(notes) = &self.inner.notes {
+            writeln!(f, "↳ {} □", notes)?;
+        }
+
+        Ok(())
+    }
+}
+
+pub struct DoughFmt<'a> {
+    inner: &'a Dough,
+    ingredients: HashMap<Ulid, &'a Ingredient>,
+    indent: &'a str,
+}
+
+impl<'a> DoughFmt<'a> {
+    pub fn new(dough: &'a Dough) -> Self {
+        Self {
+            inner: dough,
+            ingredients: HashMap::new(),
+            indent: "",
+        }
+    }
+
+    pub fn with(mut self, ingredient: &'a Ingredient) -> Self {
+        self.ingredients.insert(ingredient.id, ingredient);
+        self
+    }
+
+    pub fn with_indent(mut self, indent: &'a str) -> Self {
+        self.indent = indent;
+        self
+    }
+}
+
+impl fmt::Display for DoughFmt<'_> {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        let mass_fmt = Mass::format_args(uom::si::mass::gram, uom::fmt::DisplayStyle::Abbreviation);
+        let indent = self.indent;
+        let sub_indent = format!("{indent}  ");
+
+        writeln!(f, "{indent}| Flour := {:.1}", mass_fmt.with(self.inner.flour))?;
+        writeln!(f, "{indent}| Water := {:.1}", mass_fmt.with(self.inner.water))?;
+        writeln!(
+            f,
+            "{indent}| Wheat Proteins := {:.1}",
+            mass_fmt.with(self.inner.wheat_proteins)
+        )?;
+        write!(f, "{indent}| Ingredients ⤵")?;
+
+        for (idx, (id, mass)) in self.inner.ingredients.iter().enumerate() {
+            if let Some(ingredient) = self.ingredients.get(id) {
+                write!(
+                    f,
+                    "\n{indent}{idx} - {}",
+                    ingredient.fmt().with_mass(*mass).with_indent(&sub_indent)
+                )?;
+            } else {
+                write!(f, "\n{indent}{idx} - {} ({:.1})", id, mass_fmt.with(*mass))?;
+            }
+        }
+
+        Ok(())
+    }
+}
+
+pub struct IngredientFmt<'a> {
+    inner: &'a Ingredient,
+    mass: Option<Mass>,
+    indent: &'a str,
+}
+
+impl<'a> IngredientFmt<'a> {
+    pub fn new(ingredient: &'a Ingredient) -> Self {
+        Self {
+            inner: ingredient,
+            mass: None,
+            indent: "",
+        }
+    }
+
+    pub fn with_mass(mut self, mass: Mass) -> Self {
+        self.mass = Some(mass);
+        self
+    }
+
+    pub fn with_indent(mut self, indent: &'a str) -> Self {
+        self.indent = indent;
+        self
+    }
+}
+
+impl fmt::Display for IngredientFmt<'_> {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        let mass_fmt = Mass::format_args(uom::si::mass::gram, uom::fmt::DisplayStyle::Abbreviation);
+        let ratio_fmt = Ratio::format_args(uom::si::ratio::percent, uom::fmt::DisplayStyle::Abbreviation);
+        let indent = self.indent;
+
+        if let Some(mass) = self.mass {
+            writeln!(f, "{} ({:.1})", self.inner.name, mass_fmt.with(mass))?;
+        } else {
+            writeln!(f, "{}", self.inner.name)?;
+        }
+
+        writeln!(f, "{indent}| ID := {}", self.inner.id)?;
+        writeln!(f, "{indent}| Added By := {}", self.inner.added_by)?;
+        writeln!(f, "{indent}| Category := {:?}", self.inner.category)?;
+        write!(f, "{indent}| Kind := {:?}", self.inner.kind)?;
+
+        if self.inner.has_proteins() {
+            write!(f, "\n{indent}| Proteins := {:.1}", ratio_fmt.with(self.inner.proteins))?;
+        }
+
+        if self.inner.has_flour() {
+            write!(f, "\n{indent}| Ash := {:.1}", ratio_fmt.with(self.inner.ash))?;
+        }
+
+        if self.inner.has_water() {
+            write!(f, "\n{indent}| Water := {:.1}", ratio_fmt.with(self.inner.water))?;
+        }
+
+        if self.inner.has_sugar() {
+            write!(f, "\n{indent}| Sugar := {:.1}", ratio_fmt.with(self.inner.sugar))?;
+        }
+
+        if self.inner.has_salt() {
+            write!(f, "\n{indent}| Salt := {:.1}", ratio_fmt.with(self.inner.salt))?;
+        }
+
+        if self.inner.has_fat() {
+            write!(f, "\n{indent}| Fat := {:.1}", ratio_fmt.with(self.inner.fat))?;
+        }
+
+        if let Some(brand) = &self.inner.brand {
+            write!(f, "\n{indent}| Brand := {}", brand)?;
+        }
+
+        if let Some(reference) = &self.inner.reference {
+            write!(f, "\n{indent}| Reference := {}", reference)?;
+        }
+
+        if !self.inner.pictures.is_empty() {
+            write!(f, "\n{indent}| Picture IDs := {:?}", self.inner.pictures)?;
+        }
+
+        if let Some(notes) = &self.inner.notes {
+            let nl_indent = format!("\n{indent}");
+            write!(f, "\n{indent}↳ {} □", notes.replace('\n', &nl_indent))?;
+        }
+
+        Ok(())
+    }
+}
 
 #[cfg(test)]
 mod tests {
