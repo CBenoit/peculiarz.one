@@ -127,5 +127,60 @@ fermentation: 10h
 1 lamination 
 6 coil folds 
 Shaping : 23h59
+No in banneton stitching
 Overnight fridge proofing
 Baked : le 20 février à ?h
+
+
+J’ai mis trop de sel par accident, ça se sentait dans le goût.
+Un pain satisfaisant autrement.
+
+# Deux pains blancs 80% d’hydratation
+
+| Flour := 825.0 g
+| Water := 660.0 g
+| Wheat Proteins := 115.5 g
+| Ingredients ⤵️
+0 - White flour (702.9 g)
+  | ID := 01GSRCEPC0KRBYZMH542C7SBSD
+  | Added By := 00000000000000000000000000
+  | Category := Flour
+  | Kind := WhiteFlourUnbleached
+  | Proteins := 13.0 %
+  | Ash := 6.0 %
+1 - Gluten powder (12.1 g)
+  | ID := 01GSRCEPC1QS1JZV0W8C93R477
+  | Added By := 00000000000000000000000000
+  | Category := Flour
+  | Kind := GlutenPowder
+  | Proteins := 72.0 %
+  | Ash := 6.0 %
+2 - Bobby the Stiff Sourdough Starter (165.0 g)
+  | ID := 01GSRCEPC14YPEQ8JDVZ38EYDX
+  | Added By := 00000000000000000000000000
+  | Category := Leavener
+  | Kind := SourdoughStarter
+  | Proteins := 9.3 %
+  | Ash := 4.0 %
+  | Water := 33.3 %
+3 - Dechlorinated tap water (605.0 g)
+  | ID := 01GSRCEPC12H3GRC2EGZDFMTC1
+  | Added By := 00000000000000000000000000
+  | Category := Liquid
+  | Kind := Water
+  | Water := 100.0 %
+4 - Table salt (16.5 g)
+  | ID := 01GSRCEPC1HJ3AFR5H631YFSJQ
+  | Added By := 00000000000000000000000000
+  | Category := Salt
+  | Kind := TableSalt
+  | Salt := 100.0 %
+
+fermentation started: 16h50
+1 lamination 
+6 coil folds
+Overnight fermentation
+Shaping next morning: HHhMM
+
+Pictures:
+- …

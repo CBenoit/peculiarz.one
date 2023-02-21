@@ -637,7 +637,8 @@ impl fmt::Display for ProductFmt<'_> {
         writeln!(f, "| Dough ⤵\n{dough_fmt}")?;
 
         if let Some(notes) = &self.inner.notes {
-            writeln!(f, "↳ {} □", notes)?;
+            write!(f, "\n| Notes ⤵")?;
+            write!(f, "\n  | {} □", notes.replace('\n', "\n  | "))?;
         }
 
         Ok(())
@@ -673,18 +674,30 @@ impl<'a> DoughFmt<'a> {
 impl fmt::Display for DoughFmt<'_> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         let mass_fmt = Mass::format_args(uom::si::mass::gram, uom::fmt::DisplayStyle::Abbreviation);
+        let ratio_fmt = Ratio::format_args(uom::si::ratio::percent, uom::fmt::DisplayStyle::Abbreviation);
         let indent = self.indent;
         let sub_indent = format!("{indent}  ");
 
-        writeln!(f, "{indent}| Flour := {:.1}", mass_fmt.with(self.inner.flour))?;
-        writeln!(f, "{indent}| Water := {:.1}", mass_fmt.with(self.inner.water))?;
         writeln!(
             f,
-            "{indent}| Wheat Proteins := {:.1}",
-            mass_fmt.with(self.inner.wheat_proteins)
+            "{indent}| Total Mass := {:.1}",
+            mass_fmt.with(self.inner.total_mass())
         )?;
-        write!(f, "{indent}| Ingredients ⤵")?;
+        writeln!(f, "{indent}| Flour := {:.1}", mass_fmt.with(self.inner.flour))?;
+        writeln!(
+            f,
+            "{indent}| Water := {:.1} ({:.1})",
+            mass_fmt.with(self.inner.water),
+            ratio_fmt.with(self.inner.hydratation())
+        )?;
+        writeln!(
+            f,
+            "{indent}| Wheat Proteins := {:.1} ({:.1})",
+            mass_fmt.with(self.inner.wheat_proteins),
+            ratio_fmt.with(self.inner.wheat_proteins_ratio())
+        )?;
 
+        write!(f, "{indent}| Ingredients ⤵")?;
         for (idx, (id, mass)) in self.inner.ingredients.iter().enumerate() {
             if let Some(ingredient) = self.ingredients.get(id) {
                 write!(
@@ -753,7 +766,15 @@ impl fmt::Display for IngredientFmt<'_> {
         }
 
         if self.inner.has_water() {
-            write!(f, "\n{indent}| Water := {:.1}", ratio_fmt.with(self.inner.water))?;
+            write!(f, "\n{indent}| Water := {:.1}", ratio_fmt.with(self.inner.water),)?;
+
+            if self.inner.has_flour() {
+                write!(
+                    f,
+                    "\n{indent}| Hydratation := {:.1}",
+                    ratio_fmt.with(self.inner.hydratation())
+                )?;
+            }
         }
 
         if self.inner.has_sugar() {
@@ -781,8 +802,9 @@ impl fmt::Display for IngredientFmt<'_> {
         }
 
         if let Some(notes) = &self.inner.notes {
-            let nl_indent = format!("\n{indent}");
-            write!(f, "\n{indent}↳ {} □", notes.replace('\n', &nl_indent))?;
+            write!(f, "\n{indent}| Notes ⤵")?;
+            let nl_indent = format!("\n{indent}  | ");
+            write!(f, "\n{indent}  | {} □", notes.replace('\n', &nl_indent))?;
         }
 
         Ok(())
