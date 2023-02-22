@@ -10,7 +10,7 @@ use ulid::Ulid;
 
 use super::ApiOk;
 use crate::api::ApiError;
-use crate::crud::{Model, TreeExt};
+use crate::crud::{extract_id_from_patch, Model, Patch, TreeExt};
 use crate::AppState;
 
 impl Model for Ingredient {
@@ -56,10 +56,9 @@ async fn read_ingredients(
     Ingredient::open_tree(&s.db)?.crud_read(query.ids).map(Json)
 }
 
-async fn update_ingredient(State(s): State<AppState>, Json(ingredient): Json<Ingredient>) -> Result<ApiOk, ApiError> {
-    Ingredient::open_tree(&s.db)?
-        .crud_update(ingredient.id, &ingredient)
-        .map(|_| ApiOk)
+async fn update_ingredient(State(s): State<AppState>, Json(patch): Json<Patch>) -> Result<Json<Ingredient>, ApiError> {
+    let id = extract_id_from_patch(&patch)?;
+    Ingredient::open_tree(&s.db)?.crud_update(id, &patch).map(Json)
 }
 
 async fn delete_ingredients(Query(query): Query<ListQuery>, State(s): State<AppState>) -> Result<ApiOk, ApiError> {
@@ -83,10 +82,9 @@ async fn read_products(
     Product::open_tree(&s.db)?.crud_read(query.ids).map(Json)
 }
 
-async fn update_product(State(s): State<AppState>, Json(product): Json<Product>) -> Result<ApiOk, ApiError> {
-    Product::open_tree(&s.db)?
-        .crud_update(product.id, &product)
-        .map(|_| ApiOk)
+async fn update_product(State(s): State<AppState>, Json(patch): Json<Patch>) -> Result<Json<Ingredient>, ApiError> {
+    let id = extract_id_from_patch(&patch)?;
+    Product::open_tree(&s.db)?.crud_update(id, &patch).map(Json)
 }
 
 async fn delete_products(Query(query): Query<ListQuery>, State(s): State<AppState>) -> Result<ApiOk, ApiError> {

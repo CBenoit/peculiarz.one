@@ -3,8 +3,25 @@
 use std::collections::HashMap;
 
 use anyhow::Context as _;
+use tap::prelude::*;
+use ulid::Ulid;
 
 use crate::api::ApiError;
+
+pub type Patch = serde_json::Map<String, serde_json::Value>;
+
+pub fn extract_id_from_patch(patch: &Patch) -> Result<Ulid, ApiError> {
+    patch
+        .get("id")
+        .context("Patch is missing `id` field")
+        .map_err(ApiError::bad_request)?
+        .pipe(serde_json::Value::as_str)
+        .context("Invalid type for `id` field")
+        .map_err(ApiError::bad_request)?
+        .pipe(Ulid::from_string)
+        .context("`id` field is not a valid ULID")
+        .map_err(ApiError::bad_request)
+}
 
 pub trait Key: core::fmt::Display + Sized + core::hash::Hash + Eq {
     fn to_key(&self) -> [u8; 16];
@@ -56,7 +73,7 @@ pub trait TreeExt {
         K: Key,
         M: Model;
 
-    fn crud_update<K, M>(&self, key: K, new_value: &M) -> Result<(), ApiError>
+    fn crud_update<K, M>(&self, key: K, patch: &Patch) -> Result<M, ApiError>
     where
         K: Key,
         M: Model;
@@ -118,14 +135,53 @@ impl TreeExt for sled::Tree {
             .collect::<Result<HashMap<_, _>, ApiError>>()
     }
 
-    fn crud_update<K, M>(&self, key: K, new_value: &M) -> Result<(), ApiError>
+    fn crud_update<K, M>(&self, key: K, patch: &Patch) -> Result<M, ApiError>
     where
         K: Key,
         M: Model,
     {
-        let value = bincode::serialize(new_value)?;
-        self.insert(key.to_key(), value)?;
-        Ok(())
+        let mut error = None;
+
+        let update = |current: Option<&[u8]>, patch: &Patch| -> Result<Vec<u8>, ApiError> {
+            let current: M = current
+                .with_context(|| "{key} does not exist")
+                .map_err(ApiError::not_found)?
+                .pipe_ref(bincode::deserialize)
+                .context("Invalid bincode format")
+                .map_err(ApiError::internal)?;
+
+            let mut value: serde_json::Value = serde_json::to_value(current)
+                .context("Convert to serde_json::Value")
+                .map_err(ApiError::internal)?;
+
+            let value_ref_mut = value.as_object_mut().expect("model");
+
+            for (key, val) in patch {
+                value_ref_mut.insert(key.to_owned(), val.to_owned());
+            }
+
+            let new_value = serde_json::from_value::<M>(value)?.pipe_ref(bincode::serialize)?;
+
+            Ok(new_value)
+        };
+
+        let update_and_fetch_result = self.update_and_fetch(key.to_key(), |current| match update(current, patch) {
+            Ok(new_value) => Some(new_value),
+            Err(e) => {
+                error = Some(e);
+                current.map(|v| v.to_vec())
+            }
+        });
+
+        if let Some(error) = error {
+            Err(error)
+        } else {
+            let result = update_and_fetch_result?.expect("entry");
+            let result = bincode::deserialize(&result)
+                .context("Invalid bincode format")
+                .map_err(ApiError::internal)?;
+            Ok(result)
+        }
     }
 
     fn crud_delete<K>(&self, keys: K) -> Result<(), ApiError>
