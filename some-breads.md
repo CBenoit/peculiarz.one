@@ -134,7 +134,10 @@ Baked : le 20 février à ?h
 J’ai mis trop de sel par accident, ça se sentait dans le goût.
 Un pain satisfaisant autrement.
 
-# Deux pains blancs 80% d’hydratation
+Pictures:
+- …
+
+# Une miche et deux baguettes à 80% d’hydratation
 
 | Total Mass := 1501.5 g
 | Flour := 825.0 g
@@ -181,9 +184,12 @@ fermentation started: 16h50
 1 lamination 
 6 coil folds
 Overnight fermentation
-Shaping next morning: HHhMM
+Shaping next morning: 09h00
 Fridge proofing
 Baked at: 16h10
+
+Deux excellentes baguettes.
+La miche n’était cependant pas assez cuite. Très triste.
 
 Pictures:
 - …
