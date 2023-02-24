@@ -193,3 +193,46 @@ La miche n’était cependant pas assez cuite. Très triste.
 
 Pictures:
 - …
+
+# Pain blanc à 80% d’hydratation
+
+| Total Mass := 773.5 g
+| Flour := 425.0 g
+| Water := 340.0 g (80.0 %)
+| Wheat Proteins := 59.5 g (14.0 %)
+| Ingredients ⤵
+0 - White flour (362.1 g)
+  | ID := 01GT27EJCTBS6JA7RN9MA3BPM9
+  | Added By := 00000000000000000000000000
+  | Category := Flour
+  | Kind := WhiteFlourUnbleached
+  | Proteins := 13.0 %
+  | Ash := 6.0 %
+1 - Gluten powder (6.2 g)
+  | ID := 01GT27EJCTZ6XJZ660A6R1BR2A
+  | Added By := 00000000000000000000000000
+  | Category := Flour
+  | Kind := GlutenPowder
+  | Proteins := 72.0 %
+  | Ash := 6.0 %
+2 - Bobby the Stiff Sourdough Starter (85.0 g)
+  | ID := 01GT27EJCTA9X3NYKDW7WGHPEG
+  | Added By := 00000000000000000000000000
+  | Category := Leavener
+  | Kind := SourdoughStarter
+  | Proteins := 9.3 %
+  | Ash := 4.0 %
+  | Water := 33.3 %
+  | Hydratation := 50.0 %
+3 - Dechlorinated tap water (311.7 g)
+  | ID := 01GT27EJCTYGT0G5RNE7P99FE7
+  | Added By := 00000000000000000000000000
+  | Category := Liquid
+  | Kind := Water
+  | Water := 100.0 %
+4 - Table salt (8.5 g)
+  | ID := 01GT27EJCTSGT7WYETP4M3XSS1
+  | Added By := 00000000000000000000000000
+  | Category := Salt
+  | Kind := TableSalt
+  | Salt := 100.0 %
