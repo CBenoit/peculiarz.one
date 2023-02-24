@@ -202,21 +202,21 @@ Pictures:
 | Wheat Proteins := 59.5 g (14.0 %)
 | Ingredients ⤵
 0 - White flour (362.1 g)
-  | ID := 01GT27EJCTBS6JA7RN9MA3BPM9
+  | ID := 01GT27H6EM5CH19GVJDZWC0DGY
   | Added By := 00000000000000000000000000
   | Category := Flour
   | Kind := WhiteFlourUnbleached
   | Proteins := 13.0 %
   | Ash := 6.0 %
 1 - Gluten powder (6.2 g)
-  | ID := 01GT27EJCTZ6XJZ660A6R1BR2A
+  | ID := 01GT27H6ENFGD19EG71H0PAS2M
   | Added By := 00000000000000000000000000
   | Category := Flour
   | Kind := GlutenPowder
   | Proteins := 72.0 %
   | Ash := 6.0 %
 2 - Bobby the Stiff Sourdough Starter (85.0 g)
-  | ID := 01GT27EJCTA9X3NYKDW7WGHPEG
+  | ID := 01GT27H6ENPBW9G36FHJ8YAS3G
   | Added By := 00000000000000000000000000
   | Category := Leavener
   | Kind := SourdoughStarter
@@ -225,13 +225,13 @@ Pictures:
   | Water := 33.3 %
   | Hydratation := 50.0 %
 3 - Dechlorinated tap water (311.7 g)
-  | ID := 01GT27EJCTYGT0G5RNE7P99FE7
+  | ID := 01GT27H6EN85EW13WKP2M1V2BE
   | Added By := 00000000000000000000000000
   | Category := Liquid
   | Kind := Water
   | Water := 100.0 %
 4 - Table salt (8.5 g)
-  | ID := 01GT27EJCTSGT7WYETP4M3XSS1
+  | ID := 01GT27H6ENH9MEP0J221CYDFG0
   | Added By := 00000000000000000000000000
   | Category := Salt
   | Kind := TableSalt
