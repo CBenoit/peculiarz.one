@@ -236,3 +236,10 @@ Pictures:
   | Category := Salt
   | Kind := TableSalt
   | Salt := 100.0 %
+
+fermentation started: 12h30
+1 lamination 
+6 coil folds
+Shaping at HHh00
+Fridge proofing
+Baked two days later: 10h00?
