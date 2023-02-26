@@ -240,6 +240,65 @@ Pictures:
 fermentation started: 12h30
 1 lamination 
 6 coil folds
-Shaping at HHh00
+Shaping at 5h00 (17 hours later)
+With in banneton stitching
 Fridge proofing
-Baked two days later: 10h00?
+Baked next day: 10h00
+
+Pictures:
+- …
+
+# Trois baguettes à 80% d’hydratation
+
+| Total Mass := 825.1 g
+| Flour := 453.3 g
+| Water := 362.7 g (80.0 %)
+| Wheat Proteins := 63.5 g (14.0 %)
+| Ingredients ⤵
+0 - White flour (401.1 g)
+  | ID := 01GT5WFMHZHKS5H7N5SFE0HZFY
+  | Added By := 00000000000000000000000000
+  | Category := Flour
+  | Kind := WhiteFlourUnbleached
+  | Proteins := 13.0 %
+  | Ash := 6.0 %
+1 - Gluten powder (6.9 g)
+  | ID := 01GT5WFMJ0VDG3T6ZYKQBWRP76
+  | Added By := 00000000000000000000000000
+  | Category := Flour
+  | Kind := GlutenPowder
+  | Proteins := 72.0 %
+  | Ash := 6.0 %
+2 - Bobby the Stiff Sourdough Starter (68.0 g)
+  | ID := 01GT5WFMJ09PC93SBGBMTRN7XZ
+  | Added By := 00000000000000000000000000
+  | Category := Leavener
+  | Kind := SourdoughStarter
+  | Proteins := 9.3 %
+  | Ash := 4.0 %
+  | Water := 33.3 %
+  | Hydratation := 50.0 %
+3 - Dechlorinated tap water (340.0 g)
+  | ID := 01GT5WFMJ0FBABKFEV3H290VN7
+  | Added By := 00000000000000000000000000
+  | Category := Liquid
+  | Kind := Water
+  | Water := 100.0 %
+4 - Table salt (9.1 g)
+  | ID := 01GT5WFMJ0PF0V5D31PZYYF3RP
+  | Added By := 00000000000000000000000000
+  | Category := Salt
+  | Kind := TableSalt
+  | Salt := 100.0 %
+
+Fermentation start: 22h00
+1 lamination
+1 stretch and fold
+Overnight fermentation
+Shaping at …
+With in banneton stitching
+Fridge proofing
+Baked next day: …
+
+Pictures:
+- …
