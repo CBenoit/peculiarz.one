@@ -12,7 +12,7 @@ publish = false
 [dependencies]
 bread-world-models = { path = "../bread-world-models" }
 console_error_panic_hook = "0.1.7"
-console_log = "0.2.0"
+console_log = "1.0.0"
 ellp = "0.2.0"
 log = "0.4.17"
 uom = { version = "0.34.0", default-features = false, features = ["si", "f64"] }
